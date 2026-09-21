@@ -1,11 +1,11 @@
 package com.uniquindio.ecommerce.domain.valueobject.teacher;
 
-import com.uniquindio.ecommerce.domain.exception.ReglaDominioException;
+import com.uniquindio.ecommerce.domain.exception.ReglaNegocioException;
 
 public record Precio(double monto, String moneda) {
     public Precio {
         if (monto < 0) {
-            throw new ReglaDominioException("El precio no puede ser negativo");
+            throw new ReglaNegocioException("El precio no puede ser negativo");
         }
     }
 
