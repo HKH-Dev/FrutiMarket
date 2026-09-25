@@ -23,7 +23,7 @@ public interface LoteRepository {
     /** Lotes publicados y con cantidad disponible de un producto del catalogo. */
     List<Lote> buscarDisponiblesPorProducto(Producto producto);
 
-    List<Lote> buscarPorCampesino(Campesino campesino);
+    List<Lote> consultarPorCampesino(Campesino campesino);
 
     List<Lote> buscarPorEstado(EstadoLote estado);
 
