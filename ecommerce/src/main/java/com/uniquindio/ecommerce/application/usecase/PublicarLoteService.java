@@ -1,6 +1,6 @@
 package com.uniquindio.ecommerce.application.usecase;
 
-import com.uniquindio.ecommerce.application.ServicioDeAplicacion;
+import com.uniquindio.ecommerce.application.usecase.ServicioDeAplicacion;
 import com.uniquindio.ecommerce.application.port.in.PublicarLoteUseCase;
 import com.uniquindio.ecommerce.application.port.out.AutorizacionCampesinoPort;
 import com.uniquindio.ecommerce.application.port.out.PublicadorEventos;
@@ -8,6 +8,8 @@ import com.uniquindio.ecommerce.application.port.out.Reloj;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 
 import java.util.Objects;
 import java.util.Optional;

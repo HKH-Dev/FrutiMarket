@@ -15,9 +15,7 @@ import java.util.Objects;
 public class ControlarCalidadLoteService extends ServicioDeAplicacion
         implements ControlarCalidadLoteUseCase {
 
-    public ControlarCalidadLoteService(LoteRepository loteRepository,
-                                       Reloj reloj,
-                                       PublicadorEventos publicadorEventos) {
+    public ControlarCalidadLoteService(LoteRepository loteRepository, Reloj reloj, PublicadorEventos publicadorEventos) {
         super(loteRepository, reloj, publicadorEventos);
     }
 

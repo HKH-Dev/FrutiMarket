@@ -18,6 +18,8 @@ import java.util.Set;
 public enum EstadoLote {
 
     /** Registrado pero incompleto: aun no cumple las reglas 2 y 8 para publicarse. */
+//    REGISTRADO("Registrado"),
+
     BORRADOR("Borrador"),
 
     /** Visible en el catalogo y disponible para pedidos. */
