@@ -1,16 +1,27 @@
 package com.uniquindio.ecommerce.domain.entity;
 
+import jakarta.persistence.Entity;
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.UUID;
 
+@Data
 @AllArgsConstructor
+@Entity
 
 public class Campesino {
     private final UUID campesinoId;
     private final String numeroIdentificacion;
     private double escalaProduccion;
+
+    public Campesino(UUID campesinoId, String numeroIdentificacion) {
+        this.campesinoId = campesinoId;
+        this.numeroIdentificacion = numeroIdentificacion;
+    }
+
 
     private void publicarProducto(){
 
