@@ -1,8 +1,6 @@
 package com.uniquindio.ecommerce.domain.entity;
 
-import com.uniquindio.ecommerce.domain.valueobject.CategoriaCalibre;
 import com.uniquindio.ecommerce.domain.valueobject.EstadoLote;
-import com.uniquindio.ecommerce.domain.valueobject.PrecioFInca;
 import com.uniquindio.ecommerce.domain.valueobject.TipoCultivo;
 import lombok.AllArgsConstructor;
 
