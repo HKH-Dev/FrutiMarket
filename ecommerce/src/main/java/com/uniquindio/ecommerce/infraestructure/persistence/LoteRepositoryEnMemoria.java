@@ -1,12 +1,10 @@
 package com.uniquindio.ecommerce.infraestructure.persistence;
 
 import com.uniquindio.ecommerce.domain.entity.Campesino;
-import com.uniquindio.ecommerce.domain.entity.Lote;
+import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.entity.Producto;
 import com.uniquindio.ecommerce.domain.entity.PuntoAcopio;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
-import com.uniquindio.ecommerce.domain.valueobject.EstadoLote;
-import com.uniquindio.ecommerce.domain.valueobject.TipoCultivo;
 
 import java.time.LocalDate;
 import java.util.HashMap;

@@ -1,9 +1,8 @@
 package com.uniquindio.ecommerce.domain.service;
 
+
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.TipoCultivo;
-
-
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
@@ -33,7 +32,7 @@ public final class PoliticaFefo {
      * Como criterio de desempate usa la fecha de cosecha, para que el orden sea
      * estable y reproducible.
      */
-    public static List<com.uniquindio.ecommerce.domain.catalogo.Lote> ordenarPorPrioridad(List<Lote> lotes, Instant momento) {
+    public static List<Lote> ordenarPorPrioridad(List<Lote> lotes, Instant momento) {
         Objects.requireNonNull(lotes, "La lista de lotes no puede ser nula.");
         Objects.requireNonNull(momento, "El momento de evaluacion no puede ser nulo.");
         return lotes.stream()
@@ -70,7 +69,6 @@ public final class PoliticaFefo {
     public static java.util.Optional<Lote> siguienteADespachar(List<Lote> lotes, Instant momento) {
         return lotes.stream().min(comparadorFefo(momento));
     }
-
     private static Comparator<Lote> comparadorFefo(Instant momento) {
         return Comparator
                 .comparingLong((Lote lote) -> lote.vidaUtilRestante(momento).diasRestantes())

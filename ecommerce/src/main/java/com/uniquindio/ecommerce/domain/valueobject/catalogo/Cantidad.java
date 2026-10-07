@@ -6,6 +6,18 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Objects;
 
+/**
+ * Cantidad de producto con su unidad de medida.
+ *
+ * <p><b>Value Object (record).</b> Sustituye al par suelto
+ * {@code BigDecimal cantidad + UnidadMedida unidad} del diagrama inicial: al viajar
+ * juntos en un mismo tipo, el dominio ya no puede restar kilogramos a canastillas,
+ * y esa comprobacion deja de repetirse en cada caso de uso.</p>
+ *
+ * <p>Invariantes propias: nunca es negativa, siempre queda normalizada a la escala
+ * de su unidad, y las unidades discretas (canastilla, bulto, unidad) no admiten
+ * fracciones.</p>
+ */
 public record Cantidad(BigDecimal valor, UnidadMedida unidad) implements Comparable<Cantidad> {
 
     public Cantidad {
@@ -34,11 +46,15 @@ public record Cantidad(BigDecimal valor, UnidadMedida unidad) implements Compara
         return new Cantidad(BigDecimal.ZERO, unidad);
     }
 
-    public Cantidad mas(Cantidad otra) {
+    public  Cantidad mas(Cantidad otra) {
         exigirMismaUnidad(otra);
         return new Cantidad(valor.add(otra.valor), unidad);
     }
 
+    /**
+     * Resta otra cantidad. Si el resultado fuese negativo lanza excepcion: el
+     * dominio prefiere fallar a guardar un stock imposible.
+     */
     public Cantidad menos(Cantidad otra) {
         exigirMismaUnidad(otra);
         BigDecimal resultado = valor.subtract(otra.valor);
