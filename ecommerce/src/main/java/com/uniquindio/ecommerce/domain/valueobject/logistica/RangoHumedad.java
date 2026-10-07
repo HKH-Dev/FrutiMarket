@@ -1,6 +1,6 @@
 package com.uniquindio.ecommerce.domain.valueobject.logistica;
 
-import com.uniquindio.eccommerce.dominio.exception.ReglaDeNegocioVioladaException;
+import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 
 import java.math.BigDecimal;
 import java.util.Objects;
