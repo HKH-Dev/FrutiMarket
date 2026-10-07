@@ -1,16 +1,14 @@
 package com.uniquindio.ecommerce.domain.entity;
 
-import jakarta.persistence.Entity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.UUID;
 
 @Data
 @AllArgsConstructor
-@Entity
+
 
 public class Campesino {
     private final UUID campesinoId;
