@@ -1,8 +1,10 @@
 package com.uniquindio.ecommerce.domain.entity;
 
+import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.exception.ReglaNegocioException;
 import com.uniquindio.ecommerce.domain.valueobject.UnidadMedida;
+import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.TipoCultivo;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -26,7 +28,7 @@ class LoteTest {
         );
         Producto producto = new Producto(
                 UUID.randomUUID(), "Mango Tommy", "Mango de exportacion",
-                null, null, TipoCultivo.ORGANICO, EstadoLote.REGISTRADO
+                null, null, TipoCultivo.FRUTA, EstadoLote.REGISTRADO
         );
         return new Lote.Builder()
                 .id(id)
