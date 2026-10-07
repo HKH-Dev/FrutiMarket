@@ -1,6 +1,6 @@
 package com.uniquindio.ecommerce.domain.exception;
 
-import com.uniquindio.eccommerce.dominio.valueobject.identidad.LoteId;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 
 /** No existe un lote con el identificador solicitado. */
 public class LoteNoEncontradoException extends ReglaDeNegocioVioladaException {

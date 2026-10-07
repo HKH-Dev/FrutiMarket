@@ -1,5 +1,7 @@
 package com.uniquindio.ecommerce.application;
 
+
+
 import com.uniquindio.ecommerce.application.port.out.PublicadorEventos;
 import com.uniquindio.ecommerce.application.port.out.Reloj;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
@@ -47,7 +49,7 @@ abstract class ServicioDeAplicacion {
     }
 
     protected Lote persistirYPublicar(Lote lote) {
-        Lote guardado = loteRepository.guardar(lote);
+        Lote guardado = loteRepository.almacenar(lote);
         publicadorEventos.publicarTodos(guardado.eventos());
         guardado.limpiarEventos();
         return guardado;

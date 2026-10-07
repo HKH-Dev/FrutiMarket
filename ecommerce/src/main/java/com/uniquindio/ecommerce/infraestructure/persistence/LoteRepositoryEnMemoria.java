@@ -5,6 +5,7 @@ import com.uniquindio.ecommerce.domain.entity.Campesino;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.entity.Producto;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.PuntoAcopioId;
 import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.TipoCultivo;
 
@@ -25,7 +26,7 @@ public class LoteRepositoryEnMemoria implements LoteRepository {
     }
 
     @Override
-    public Optional<Lote> buscarPorId(String id) {
+    public Optional<Lote> buscarPorId(LoteId id) {
         return Optional.ofNullable(lotes.get(id));
     }
 
