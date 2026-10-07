@@ -1,5 +1,6 @@
 package com.uniquindio.ecommerce.application.usecase;
 
+import com.uniquindio.ecommerce.application.ServicioDeAplicacion;
 import com.uniquindio.ecommerce.application.port.in.ControlarCalidadLoteUseCase;
 import com.uniquindio.ecommerce.application.port.out.PublicadorEventos;
 import com.uniquindio.ecommerce.application.port.out.Reloj;
@@ -15,10 +16,8 @@ import java.util.Objects;
 public class ControlarCalidadLoteService extends ServicioDeAplicacion
         implements ControlarCalidadLoteUseCase {
 
-    public ControlarCalidadLoteService(LoteRepository loteRepository,
-                                       Reloj reloj,
-                                       PublicadorEventos publicadorEventos) {
-        super(loteRepository, reloj, publicadorEventos);
+    public ControlarCalidadLoteService(LoteRepository loteRepository, Reloj reloj, PublicadorEventos publicadorEventos) {
+        super((loteRepository, reloj, publicadorEventos);
     }
 
     @Override

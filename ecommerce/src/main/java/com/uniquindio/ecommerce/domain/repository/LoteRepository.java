@@ -1,9 +1,11 @@
 package com.uniquindio.ecommerce.domain.repository;
 
+import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
 import com.uniquindio.ecommerce.domain.entity.Campesino;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.entity.Producto;
-import com.uniquindio.ecommerce.domain.entity.PuntoAcopio;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.PuntoAcopioId;
+import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.TipoCultivo;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,7 +28,7 @@ public interface LoteRepository {
     List<Lote> buscarPorEstado(EstadoLote estado);
 
     /** Regla 16: candidatos a despacho desde un punto de acopio, para ordenar por FEFO. */
-    List<Lote> buscarEnAcopioPorCultivo(PuntoAcopio puntoAcopio, TipoCultivo tipoCultivo);
+    List<Lote> buscarEnAcopioPorCultivo(PuntoAcopioId puntoAcopio, TipoCultivo tipoCultivo);
 
     /** Lotes que ya superaron su fecha limite de consumo y siguen activos. */
     List<Lote> buscarVencidosNoCerrados();
