@@ -18,6 +18,6 @@ public class CompraRepositoryEnMemoria implements CompraRepository {
 
     @Override
     public void guardar(Compra compra) {
-//        compras.put(compra.getId(), compra);
+        compras.put(compra.getCompraId().toString(), compra);
     }
 }
