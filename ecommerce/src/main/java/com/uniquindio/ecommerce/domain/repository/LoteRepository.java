@@ -1,11 +1,9 @@
 package com.uniquindio.ecommerce.domain.repository;
 
 import com.uniquindio.ecommerce.domain.entity.Campesino;
-import com.uniquindio.ecommerce.domain.entity.Lote;
+import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.entity.Producto;
 import com.uniquindio.ecommerce.domain.entity.PuntoAcopio;
-import com.uniquindio.ecommerce.domain.valueobject.EstadoLote;
-import com.uniquindio.ecommerce.domain.valueobject.TipoCultivo;
 
 import java.util.List;
 import java.util.Optional;
