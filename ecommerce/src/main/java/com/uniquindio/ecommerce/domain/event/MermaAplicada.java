@@ -1,8 +1,8 @@
 package com.uniquindio.ecommerce.domain.event;
 
-import com.uniquindio.eccommerce.dominio.valueobject.catalogo.Cantidad;
-import com.uniquindio.eccommerce.dominio.valueobject.catalogo.Merma;
-import com.uniquindio.eccommerce.dominio.valueobject.identidad.LoteId;
+import com.uniquindio.ecommerce.domain.valueobject.catalogo.Cantidad;
+import com.uniquindio.ecommerce.domain.valueobject.catalogo.Merma;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 
 import java.time.Instant;
 

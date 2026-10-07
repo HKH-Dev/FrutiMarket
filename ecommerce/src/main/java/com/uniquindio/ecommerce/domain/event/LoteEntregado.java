@@ -1,7 +1,7 @@
 package com.uniquindio.ecommerce.domain.event;
 
-import com.uniquindio.eccommerce.dominio.valueobject.identidad.DestinatarioId;
-import com.uniquindio.eccommerce.dominio.valueobject.identidad.LoteId;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.DestinatarioId;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 
 import java.time.Instant;
 
