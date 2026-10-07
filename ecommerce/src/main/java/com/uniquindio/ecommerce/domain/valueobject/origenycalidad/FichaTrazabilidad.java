@@ -1,8 +1,9 @@
 package com.uniquindio.ecommerce.domain.valueobject.origenycalidad;
 
-import com.uniquindio.eccommerce.dominio.exception.ReglaDeNegocioVioladaException;
-import com.uniquindio.eccommerce.dominio.valueobject.identidad.CampesinoId;
-import com.uniquindio.eccommerce.dominio.valueobject.identidad.FincaOrigenId;
+
+import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.FincaOrigenId;
 
 import java.time.LocalDate;
 import java.util.Objects;

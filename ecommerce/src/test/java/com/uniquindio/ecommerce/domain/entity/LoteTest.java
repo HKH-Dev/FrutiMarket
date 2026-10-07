@@ -1,8 +1,7 @@
 package com.uniquindio.ecommerce.domain.entity;
 
+import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.exception.ReglaNegocioException;
-import com.uniquindio.ecommerce.domain.valueobject.EstadoLote;
-import com.uniquindio.ecommerce.domain.valueobject.TipoCultivo;
 import com.uniquindio.ecommerce.domain.valueobject.UnidadMedida;
 import org.junit.jupiter.api.Test;
 
