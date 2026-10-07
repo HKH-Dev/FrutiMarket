@@ -1,6 +1,6 @@
 package com.uniquindio.ecommerce.application.usecase;
 
-import com.uniquindio.ecommerce.application.ServicioDeAplicacion;
+
 import com.uniquindio.ecommerce.application.port.in.GestionarDisponibilidadUseCase;
 import com.uniquindio.ecommerce.application.port.out.AutorizacionCampesinoPort;
 import com.uniquindio.ecommerce.application.port.out.PublicadorEventos;
