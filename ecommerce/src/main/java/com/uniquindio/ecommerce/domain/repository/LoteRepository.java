@@ -4,6 +4,7 @@ import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
 import com.uniquindio.ecommerce.domain.entity.Campesino;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.entity.Producto;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.PuntoAcopioId;
 import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.TipoCultivo;
 
@@ -14,7 +15,7 @@ public interface LoteRepository {
 
     Lote almacenar(Lote lote);
 
-    Optional<Lote> buscarPorId(String id);
+    Optional<Lote> buscarPorId(LoteId id);
 
     List<Lote> buscarTodos();
 

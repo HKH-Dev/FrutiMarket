@@ -3,6 +3,7 @@ package com.uniquindio.ecommerce.application.usecase;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.exception.RecursoNoEncontradoException;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 
 import java.util.List;
 
@@ -14,7 +15,7 @@ public class ConsultarLoteUseCase {
         this.loteRepository = loteRepository;
     }
 
-    public Lote ejecutar(String loteId) {
+    public Lote ejecutar(LoteId loteId) {
         return loteRepository.buscarPorId(loteId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Lote", loteId));
     }
