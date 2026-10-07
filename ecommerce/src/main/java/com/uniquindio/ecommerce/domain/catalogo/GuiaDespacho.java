@@ -1,9 +1,10 @@
 package com.uniquindio.ecommerce.domain.catalogo;
 
-import com.uniquindio.eccommerce.dominio.exception.ReglaDeNegocioVioladaException;
-import com.uniquindio.eccommerce.dominio.valueobject.identidad.GuiaDespachoId;
-import com.uniquindio.eccommerce.dominio.valueobject.identidad.LoteId;
-import com.uniquindio.eccommerce.dominio.valueobject.logistica.*;
+
+
+import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.*;
+import com.uniquindio.ecommerce.domain.valueobject.logistica.*;
 
 import java.time.Instant;
 import java.util.*;

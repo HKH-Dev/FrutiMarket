@@ -1,7 +1,7 @@
 package com.uniquindio.ecommerce.domain.catalogo;
 
-import com.uniquindio.eccommerce.dominio.valueobject.catalogo.Cantidad;
-import com.uniquindio.eccommerce.dominio.valueobject.identidad.PedidoId;
+import com.uniquindio.ecommerce.domain.valueobject.catalogo.Cantidad;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.PedidoId;
 
 import java.time.Instant;
 import java.util.Objects;
