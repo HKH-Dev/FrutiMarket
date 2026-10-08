@@ -2,7 +2,6 @@ package com.uniquindio.ecommerce.application.usecase;
 
 import com.uniquindio.ecommerce.domain.entity.Compra;
 import com.uniquindio.ecommerce.domain.repository.CompraRepository;
-import com.uniquindio.ecommerce.domain.valueobject.teacher.Precio;
 
 public class RealizarCompraUseCase {
 

@@ -1,5 +1,9 @@
 package com.uniquindio.ecommerce.domain.entity;
 
+import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
+import com.uniquindio.ecommerce.domain.valueobject.catalogo.CategoriaCalibre;
+import com.uniquindio.ecommerce.domain.valueobject.catalogo.PrecioFinca;
+import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.TipoCultivo;
 import lombok.AllArgsConstructor;
 
 import java.util.UUID;
@@ -9,7 +13,7 @@ public class Producto {
     private final UUID productoId;
     private String titulo;
     private String descripcion;
-    private PrecioFInca precio;
+    private PrecioFinca precio;
     private CategoriaCalibre categoria;
     private TipoCultivo tipo;
     private EstadoLote estado;
