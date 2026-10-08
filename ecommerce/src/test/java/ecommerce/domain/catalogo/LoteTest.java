@@ -32,8 +32,7 @@ class LoteTest {
 
     private static Lote loteDeMangoPublicado(String kilosIniciales) {
         CampesinoId campesino = CampesinoId.nuevo();
-        FichaTrazabilidad ficha = FichaTrazabilidad.registrar(
-                campesino, FincaOrigenId.nuevo(), TecnicaProduccion.AGROECOLOGICA, FECHA_COSECHA);
+        FichaTrazabilidad ficha = FichaTrazabilidad.registrar(campesino, FincaOrigenId.nuevo(), TecnicaProduccion.AGROECOLOGICA, FECHA_COSECHA);
         Lote lote = Lote.registrarMateriaPrima(
                 "LOT-MANGO-01", ProductoId.nuevo(), campesino, ficha, TipoCultivo.FRUTA,
                 kilos(kilosIniciales), PrecioFinca.de("3500", Moneda.COP, UnidadMedida.KILOGRAMO),
