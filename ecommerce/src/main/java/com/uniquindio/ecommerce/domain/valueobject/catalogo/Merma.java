@@ -4,53 +4,64 @@ import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Objects;
 
 /**
- * Porcentaje de perdida esperada de un lote, especialmente cuando es perecedero.
- *
- * <p><b>Value Object (record).</b> La merma no descuenta dinero, ajusta la <i>cantidad disponible</i>
- * para que el marketplace no prometa producto que se va a perder en el camino.</p>
+ * Value Object: porcentaje de perdida esperada del lote. Ajusta la cantidad
+ * disponible, no el precio. Nunca puede declararse por encima del 40 %.
  */
-public record Merma(BigDecimal porcentaje, String justificacion) {
+public final class Merma {
 
     private static final BigDecimal MAXIMO_ACEPTABLE = BigDecimal.valueOf(40);
 
-    public Merma {
-        Objects.requireNonNull(porcentaje, "El porcentaje de merma no puede ser nulo.");
-        if (porcentaje.signum() < 0 || porcentaje.compareTo(BigDecimal.valueOf(100)) > 0) {
-            throw new ReglaDeNegocioVioladaException("INV-MERMA",
-                    "La merma debe estar entre 0% y 100%. Recibido: " + porcentaje + "%.");
-        }
-        if (porcentaje.compareTo(MAXIMO_ACEPTABLE) > 0) {
-            throw new ReglaDeNegocioVioladaException("INV-MERMA",
-                    "Una merma superior al " + MAXIMO_ACEPTABLE
-                            + "% exige revision manual del lote, no puede declararse al registrar.");
-        }
-        porcentaje = porcentaje.setScale(2, RoundingMode.HALF_UP);
-        justificacion = (justificacion == null || justificacion.isBlank()) ? "No declarada" : justificacion.trim();
+    private final BigDecimal porcentaje;
+    private final String justificacion;
+
+    private Merma(BigDecimal porcentaje, String justificacion) {
+        this.porcentaje = porcentaje;
+        this.justificacion = justificacion;
     }
 
-    public static Merma ninguna() {
-        return new Merma(BigDecimal.ZERO, "Sin perdida esperada");
+    public static Merma de(BigDecimal porcentaje, String justificacion) {
+        ReglaDeNegocioVioladaException.validar(porcentaje != null && porcentaje.signum() >= 0, "INV-MERMA",
+                "La merma no puede ser nula ni negativa.");
+        ReglaDeNegocioVioladaException.validar(porcentaje.compareTo(MAXIMO_ACEPTABLE) <= 0, "INV-MERMA",
+                "Una merma superior al " + MAXIMO_ACEPTABLE + "% exige revision manual del lote.");
+        String texto = (justificacion == null || justificacion.isBlank()) ? "No declarada" : justificacion.trim();
+        return new Merma(porcentaje.setScale(2, RoundingMode.HALF_UP), texto);
     }
 
     public static Merma de(String porcentaje, String justificacion) {
-        return new Merma(new BigDecimal(porcentaje), justificacion);
+        return de(new BigDecimal(porcentaje), justificacion);
+    }
+
+    public static Merma ninguna() {
+        return de(BigDecimal.ZERO, "Sin perdida esperada");
     }
 
     public boolean esNula() {
         return porcentaje.signum() == 0;
     }
 
-    /** Cantidad que se pierde al aplicar esta merma sobre la cantidad indicada. */
     public Cantidad perdidaSobre(Cantidad cantidad) {
         return cantidad.porcentaje(porcentaje);
     }
 
-    /** Cantidad que realmente queda disponible despues de descontar la merma. */
-    public Cantidad aplicarA(Cantidad cantidad) {
-        return cantidad.menos(perdidaSobre(cantidad));
+    public BigDecimal porcentaje() {
+        return porcentaje;
+    }
+
+    public String justificacion() {
+        return justificacion;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof Merma otra && porcentaje.equals(otra.porcentaje) && justificacion.equals(otra.justificacion);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * porcentaje.hashCode() + justificacion.hashCode();
     }
 
     @Override

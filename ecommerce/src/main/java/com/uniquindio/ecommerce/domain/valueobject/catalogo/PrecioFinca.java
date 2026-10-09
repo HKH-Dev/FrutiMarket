@@ -4,69 +4,73 @@ import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Objects;
 
 /**
- * Precio base por unidad que el campesino fija para el lote, antes de cualquier
- * costo de comercializacion.
- *
- * <p><b>Value Object (record).</b> Es el mecanismo con el que el dominio hace
- * visible el valor que realmente recibe el productor: la plataforma puede sumar un
- * margen encima, pero el precio de finca queda registrado sin tocar.</p>
- *
- * <p>Aporta a la regla 2 (un lote no puede publicarse sin precio).</p>
+ * Value Object: precio por unidad, en pesos colombianos, que fija el campesino.
+ * Siempre es mayor que cero (regla 2: un lote no se publica sin precio).
  */
-public record PrecioFinca(BigDecimal valorPorUnidad, Moneda moneda, UnidadMedida unidadReferencia) {
+public final class PrecioFinca {
 
-    /** Margen maximo que la plataforma puede sumar sobre el precio de finca. */
     private static final BigDecimal MARGEN_MAXIMO_PORCENTAJE = BigDecimal.valueOf(20);
 
-    public PrecioFinca {
-        Objects.requireNonNull(valorPorUnidad, "El precio de finca no puede ser nulo.");
-        Objects.requireNonNull(moneda, "La moneda no puede ser nula.");
-        Objects.requireNonNull(unidadReferencia, "La unidad de referencia del precio no puede ser nula.");
-        if (valorPorUnidad.signum() <= 0) {
-            throw new ReglaDeNegocioVioladaException("R2",
-                    "El precio de finca debe ser mayor que cero. Recibido: " + valorPorUnidad);
-        }
-        valorPorUnidad = valorPorUnidad.setScale(moneda.escala(), RoundingMode.HALF_UP);
+    private final BigDecimal valorPorUnidad;
+    private final UnidadMedida unidadReferencia;
+
+    private PrecioFinca(BigDecimal valorPorUnidad, UnidadMedida unidadReferencia) {
+        this.valorPorUnidad = valorPorUnidad;
+        this.unidadReferencia = unidadReferencia;
     }
 
-    public static PrecioFinca de(String valor, Moneda moneda, UnidadMedida unidad) {
-        return new PrecioFinca(new BigDecimal(valor), moneda, unidad);
+    public static PrecioFinca de(BigDecimal valorPorUnidad, UnidadMedida unidadReferencia) {
+        ReglaDeNegocioVioladaException.validar(valorPorUnidad != null && valorPorUnidad.signum() > 0, "R2",
+                "El precio de finca debe ser mayor que cero. Recibido: " + valorPorUnidad);
+        ReglaDeNegocioVioladaException.validar(unidadReferencia != null, "R2",
+                "El precio debe indicar la unidad a la que se refiere.");
+        return new PrecioFinca(valorPorUnidad.setScale(0, RoundingMode.HALF_UP), unidadReferencia);
     }
 
-    /** Valor total del lote a precio de finca para la cantidad indicada. */
+    public static PrecioFinca de(String valorPorUnidad, UnidadMedida unidadReferencia) {
+        return de(new BigDecimal(valorPorUnidad), unidadReferencia);
+    }
+
+    /** Valor de la cantidad indicada a precio de finca. */
     public BigDecimal totalPara(Cantidad cantidad) {
-        Objects.requireNonNull(cantidad, "La cantidad no puede ser nula.");
-        if (cantidad.unidad() != unidadReferencia) {
-            throw new ReglaDeNegocioVioladaException("INV-PRECIO",
-                    "El precio esta expresado por " + unidadReferencia.simbolo()
-                            + " y la cantidad viene en " + cantidad.unidad().simbolo() + ".");
-        }
-        return valorPorUnidad.multiply(cantidad.valor())
-                .setScale(moneda.escala(), RoundingMode.HALF_UP);
+        ReglaDeNegocioVioladaException.validar(cantidad.unidad() == unidadReferencia, "INV-PRECIO",
+                "El precio esta expresado por " + unidadReferencia.simbolo()
+                        + " y la cantidad viene en " + cantidad.unidad().simbolo() + ".");
+        return valorPorUnidad.multiply(cantidad.valor()).setScale(0, RoundingMode.HALF_UP);
     }
 
-    /**
-     * Precio de venta tras aplicar el margen de la plataforma. Rechaza margenes por
-     * encima del tope: es la barrera concreta contra la especulacion que el negocio
-     * busca eliminar.
-     */
+    /** Precio de venta con el margen de la plataforma; el margen nunca puede superar el 20 %. */
     public BigDecimal conMargenDePlataforma(BigDecimal porcentajeMargen) {
-        Objects.requireNonNull(porcentajeMargen, "El margen no puede ser nulo.");
-        if (porcentajeMargen.signum() < 0 || porcentajeMargen.compareTo(MARGEN_MAXIMO_PORCENTAJE) > 0) {
-            throw new ReglaDeNegocioVioladaException("INV-MARGEN",
-                    "El margen de plataforma debe estar entre 0% y "
-                            + MARGEN_MAXIMO_PORCENTAJE + "%. Recibido: " + porcentajeMargen + "%.");
-        }
-        BigDecimal factor = BigDecimal.ONE.add(
-                porcentajeMargen.divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
-        return valorPorUnidad.multiply(factor).setScale(moneda.escala(), RoundingMode.HALF_UP);
+        ReglaDeNegocioVioladaException.validar(porcentajeMargen != null && porcentajeMargen.signum() >= 0
+                        && porcentajeMargen.compareTo(MARGEN_MAXIMO_PORCENTAJE) <= 0, "INV-MARGEN",
+                "El margen de plataforma debe estar entre 0% y " + MARGEN_MAXIMO_PORCENTAJE + "%.");
+        BigDecimal factor = BigDecimal.ONE.add(porcentajeMargen.divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
+        return valorPorUnidad.multiply(factor).setScale(0, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal valorPorUnidad() {
+        return valorPorUnidad;
+    }
+
+    public UnidadMedida unidadReferencia() {
+        return unidadReferencia;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof PrecioFinca otro && valorPorUnidad.equals(otro.valorPorUnidad)
+                && unidadReferencia == otro.unidadReferencia;
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * valorPorUnidad.hashCode() + unidadReferencia.hashCode();
     }
 
     @Override
     public String toString() {
-        return moneda.simbolo() + valorPorUnidad.toPlainString() + "/" + unidadReferencia.simbolo();
+        return "$" + valorPorUnidad.toPlainString() + "/" + unidadReferencia.simbolo();
     }
 }

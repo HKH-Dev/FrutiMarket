@@ -1,5 +1,6 @@
 package com.uniquindio.ecommerce.domain.catalogo;
 
+import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import com.uniquindio.ecommerce.domain.valueobject.catalogo.Cantidad;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.PedidoId;
 
@@ -7,21 +8,40 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Cantidad de un lote comprometida con un pedido concreto.
- *
- * <p><b>Value Object (record) dentro del agregado.</b> No se modifica: una reserva
- * se crea, y luego se confirma o se libera quitandola de la lista del lote. Esa
- * lista es lo que permite cumplir la regla 5, que prohibe retirar un lote con
- * pedidos activos.</p>
- *
- * <p>{@code pedido} es un identificador, no una referencia al agregado
- * {@code Pedido}: el lote nunca navega hacia el pedido.</p>
+ * Value Object interno del agregado {@code Lote}: cantidad comprometida con un pedido.
+ * Solo el lote la crea; por eso la factoria es de visibilidad de paquete.
  */
-public record ReservaLote(PedidoId pedido, Cantidad cantidad, Instant momento) {
+public final class ReservaLote {
 
-    public ReservaLote {
-        Objects.requireNonNull(pedido, "Una reserva debe referirse a un pedido.");
-        Objects.requireNonNull(cantidad, "Una reserva debe tener cantidad.");
-        Objects.requireNonNull(momento, "Una reserva debe tener momento de creacion.");
+    private final PedidoId pedido;
+    private final Cantidad cantidad;
+    private final Instant momento;
+
+    private ReservaLote(PedidoId pedido, Cantidad cantidad, Instant momento) {
+        this.pedido = pedido;
+        this.cantidad = cantidad;
+        this.momento = momento;
+    }
+
+    static ReservaLote crear(PedidoId pedido, Cantidad cantidad, Instant momento) {
+        ReglaDeNegocioVioladaException.validar(pedido != null, "INV-RESERVA", "Una reserva debe referirse a un pedido.");
+        ReglaDeNegocioVioladaException.validar(cantidad != null, "INV-RESERVA", "Una reserva debe tener cantidad.");
+        ReglaDeNegocioVioladaException.validar(momento != null, "INV-RESERVA", "Una reserva debe tener momento.");
+        return new ReservaLote(pedido, cantidad, momento);
+    }
+
+    public PedidoId pedido() { return pedido; }
+    public Cantidad cantidad() { return cantidad; }
+    public Instant momento() { return momento; }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof ReservaLote otra && pedido.equals(otra.pedido)
+                && cantidad.equals(otra.cantidad) && momento.equals(otra.momento);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(pedido, cantidad, momento);
     }
 }
