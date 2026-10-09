@@ -1,66 +1,76 @@
 package com.uniquindio.ecommerce.domain.valueobject.origenycalidad;
 
-
 import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
-import com.uniquindio.ecommerce.domain.valueobject.identidad.FincaOrigenId;
 
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
- * Registro que documenta el origen completo del lote.
- *
- * <p><b>Value Object (record).</b> Aplicando las tres pruebas del modelado:
- * <ol>
- *   <li>¿Necesita identidad propia? No: se identifica por su contenido.</li>
- *   <li>¿Cambia con el tiempo conservando su identidad? No: una ficha corregida es
- *       una ficha nueva; la anterior no debe poder mutar, porque es justamente la
- *       promesa de transparencia que el comprador esta comprando.</li>
- *   <li>¿Puede existir sin el lote? No: pertenece a su frontera.</li>
- * </ol>
- *
- * <p>Es la pieza central de la regla 8: todo lote debe tener identificado su origen
- * y el campesino responsable antes de ser publicado.</p>
+ * Value Object: documenta el origen del lote (regla 8). Una ficha corregida es una
+ * ficha nueva; nunca muta, porque es la promesa de transparencia al comprador.
  */
-public record FichaTrazabilidad(CampesinoId campesinoResponsable,
-                                FincaOrigenId fincaOrigen,
-                                TecnicaProduccion tecnica,
-                                LocalDate fechaCosechaOElaboracion,
-                                String observaciones) {
+public final class FichaTrazabilidad {
 
-    public FichaTrazabilidad {
-        Objects.requireNonNull(campesinoResponsable,
-                "La ficha de trazabilidad exige un campesino responsable (regla 8).");
-        Objects.requireNonNull(fincaOrigen,
-                "La ficha de trazabilidad exige la finca de origen (regla 8).");
-        Objects.requireNonNull(tecnica, "La ficha de trazabilidad exige la tecnica de produccion.");
-        Objects.requireNonNull(fechaCosechaOElaboracion,
-                "La ficha de trazabilidad exige la fecha de cosecha o elaboracion.");
-        observaciones = (observaciones == null || observaciones.isBlank()) ? "" : observaciones.trim();
+    private final CampesinoId campesinoResponsable;
+    private final UUID fincaOrigen;
+    private final TecnicaProduccion tecnica;
+    private final LocalDate fechaCosecha;
+    private final String observaciones;
+
+    private FichaTrazabilidad(CampesinoId campesinoResponsable, UUID fincaOrigen, TecnicaProduccion tecnica,
+                              LocalDate fechaCosecha, String observaciones) {
+        this.campesinoResponsable = campesinoResponsable;
+        this.fincaOrigen = fincaOrigen;
+        this.tecnica = tecnica;
+        this.fechaCosecha = fechaCosecha;
+        this.observaciones = observaciones;
     }
 
-    public static FichaTrazabilidad registrar(CampesinoId campesino,
-                                              FincaOrigenId finca,
-                                              TecnicaProduccion tecnica,
-                                              LocalDate fecha) {
-        return new FichaTrazabilidad(campesino, finca, tecnica, fecha, "");
+    public static FichaTrazabilidad registrar(CampesinoId campesino, UUID finca, TecnicaProduccion tecnica,
+                                              LocalDate fechaCosecha, String observaciones) {
+        ReglaDeNegocioVioladaException.validar(campesino != null, "R8", "La ficha exige un campesino responsable.");
+        ReglaDeNegocioVioladaException.validar(finca != null, "R8", "La ficha exige la finca de origen.");
+        ReglaDeNegocioVioladaException.validar(tecnica != null, "R8", "La ficha exige la tecnica de produccion.");
+        ReglaDeNegocioVioladaException.validar(fechaCosecha != null, "R8", "La ficha exige la fecha de cosecha.");
+        String texto = (observaciones == null || observaciones.isBlank()) ? "" : observaciones.trim();
+        return new FichaTrazabilidad(campesino, finca, tecnica, fechaCosecha, texto);
     }
 
-    /**
-     * Regla 8: la ficha esta completa cuando lleva origen, responsable, tecnica y
-     * fecha. Los tres primeros los garantiza el constructor; aqui se comprueba la
-     * coherencia temporal contra el reloj del caso de uso.
-     */
+    public static FichaTrazabilidad registrar(CampesinoId campesino, UUID finca, TecnicaProduccion tecnica,
+                                              LocalDate fechaCosecha) {
+        return registrar(campesino, finca, tecnica, fechaCosecha, "");
+    }
+
+    /** Regla 8: completa si la fecha de cosecha no es futura respecto a hoy. */
     public boolean estaCompleta(LocalDate hoy) {
-        return !fechaCosechaOElaboracion.isAfter(hoy);
+        return !fechaCosecha.isAfter(hoy);
     }
 
     public void validarContra(LocalDate hoy) {
-        if (!estaCompleta(hoy)) {
-            throw new ReglaDeNegocioVioladaException("R8",
-                    "La fecha de cosecha o elaboracion (" + fechaCosechaOElaboracion
-                            + ") no puede ser futura.");
-        }
+        ReglaDeNegocioVioladaException.validar(estaCompleta(hoy), "R8",
+                "La fecha de cosecha de la ficha (" + fechaCosecha + ") no puede ser futura.");
+    }
+
+    public CampesinoId campesinoResponsable() { return campesinoResponsable; }
+    public UUID fincaOrigen() { return fincaOrigen; }
+    public TecnicaProduccion tecnica() { return tecnica; }
+    public LocalDate fechaCosecha() { return fechaCosecha; }
+    public String observaciones() { return observaciones; }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof FichaTrazabilidad otra
+                && campesinoResponsable.equals(otra.campesinoResponsable)
+                && fincaOrigen.equals(otra.fincaOrigen)
+                && tecnica == otra.tecnica
+                && fechaCosecha.equals(otra.fechaCosecha)
+                && observaciones.equals(otra.observaciones);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(campesinoResponsable, fincaOrigen, tecnica, fechaCosecha, observaciones);
     }
 }

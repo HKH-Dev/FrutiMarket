@@ -1,180 +1,182 @@
 package com.uniquindio.ecommerce.domain.catalogo;
 
-
-
 import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
-import com.uniquindio.ecommerce.domain.valueobject.identidad.*;
-import com.uniquindio.ecommerce.domain.valueobject.logistica.*;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.AlmacenId;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.GuiaDespachoId;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
+import com.uniquindio.ecommerce.domain.valueobject.logistica.Conservacion;
+import com.uniquindio.ecommerce.domain.valueobject.logistica.TipoEmpaque;
 
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 /**
- * Documento que acompana el traslado de un lote y registra su recorrido.
+ * Documento que acompana el traslado de un lote entre dos puntos.
  *
- * <p><b>Entidad interna del agregado {@code Lote}.</b> Esta es la unica clase del
- * modelo que no es ni raiz ni Value Object, y conviene entender por que:</p>
+ * <p><b>Entidad interna del agregado {@code Lote}:</b> tiene identidad propia y cambia
+ * conservandola (se le anotan registros), pero no existe sin su lote. Solo el lote la
+ * emite y la modifica; por eso sus metodos de cambio son de visibilidad de paquete.</p>
+ *
+ * <p>El recorrido se anota con {@link RegistroCustodia}, la misma clase de la cadena de
+ * custodia del lote: cada registro creado aqui lleva el id de esta guia, asi la
+ * trazabilidad del lote muestra en que traslado ocurrio cada cosa.</p>
+ *
+ * <p>Invariantes:</p>
  * <ul>
- *   <li><b>Es entidad</b> porque tiene identidad propia y cambia conservandola: se
- *       le van anadiendo hitos y sigue siendo la misma guia.</li>
- *   <li><b>Es interna y no raiz</b> porque no puede existir sin su lote, y porque
- *       las reglas 10, 11, 12 y 17 relacionan el estado de la guia con el estado
- *       del lote. Si fueran agregados separados no habria forma de garantizar esas
- *       reglas en una sola transaccion.</li>
+ *   <li><b>R12:</b> un lote que requiere cadena de frio nunca viaja en un empaque que no sea aislante termico.</li>
+ *   <li><b>INV-GUIA:</b> una guia cerrada o anulada nunca admite registros nuevos.</li>
+ *   <li><b>INV-GUIA:</b> los registros siempre se anotan en orden cronologico.</li>
+ *   <li><b>INV-GUIA:</b> una guia cerrada nunca puede anularse.</li>
  * </ul>
- *
- * <p>Nunca se accede a ella desde fuera: se obtiene siempre a traves de
- * {@code Lote.guiaDespachoActiva()}, y se modifica llamando metodos del lote.</p>
  */
 public class GuiaDespacho {
+
+    public enum Estado {
+        EMITIDA, EN_RUTA, CERRADA, ANULADA;
+
+        public boolean permiteRegistros() {
+            return this == EMITIDA || this == EN_RUTA;
+        }
+    }
 
     private final GuiaDespachoId id;
     private final String numero;
     private final LoteId lote;
+    private final AlmacenId almacenOrigen;
     private final String origen;
     private final String destino;
     private final TipoEmpaque empaque;
-    private final TiempoTransito tiempoTransitoEstimado;
+    private final Duration tiempoTransitoEstimado;
     private final Instant fechaEmision;
-    private final List<HitoDespacho> hitos;
-    private EstadoGuia estado;
+    private final List<RegistroCustodia> registros;
+    private Estado estado;
     private Instant fechaCierre;
 
-    private GuiaDespacho(GuiaDespachoId id, String numero, LoteId lote, String origen, String destino,
-                         TipoEmpaque empaque, TiempoTransito tiempoTransitoEstimado, Instant fechaEmision) {
+    private GuiaDespacho(GuiaDespachoId id, String numero, LoteId lote, AlmacenId almacenOrigen, String origen,
+                         String destino, TipoEmpaque empaque, Duration tiempoTransitoEstimado, Instant fechaEmision) {
         this.id = id;
         this.numero = numero;
         this.lote = lote;
+        this.almacenOrigen = almacenOrigen;
         this.origen = origen;
         this.destino = destino;
         this.empaque = empaque;
         this.tiempoTransitoEstimado = tiempoTransitoEstimado;
         this.fechaEmision = fechaEmision;
-        this.hitos = new ArrayList<>();
-        this.estado = EstadoGuia.EMITIDA;
+        this.registros = new ArrayList<>();
+        this.estado = Estado.EMITIDA;
     }
 
     /**
-     * Emite una guia nueva. Es de visibilidad de paquete a proposito: solo el
-     * agregado {@code Lote} puede crear guias, nadie mas.
+     * Emite la guia y anota la salida del origen como primer registro.
+     * Solo el agregado {@code Lote} puede emitir guias.
      */
-    static GuiaDespacho emitir(LoteId lote, String origen, String destino,
-                               TipoEmpaque empaque, TiempoTransito tiempoTransito, Instant momento) {
-        Objects.requireNonNull(lote, "La guia debe referirse a un lote.");
-        Objects.requireNonNull(empaque, "La guia debe declarar el tipo de empaque (regla 12).");
-        Objects.requireNonNull(tiempoTransito, "La guia debe declarar el tiempo de transito (regla 10).");
-        Objects.requireNonNull(momento, "La guia debe tener fecha de emision.");
-        if (origen == null || origen.isBlank()) {
-            throw new ReglaDeNegocioVioladaException("INV-GUIA", "La guia de despacho debe indicar el origen.");
-        }
-        if (destino == null || destino.isBlank()) {
-            throw new ReglaDeNegocioVioladaException("INV-GUIA", "La guia de despacho debe indicar el destino.");
-        }
+    static GuiaDespacho emitir(LoteId lote, AlmacenId almacenOrigen, String origen, String destino,
+                               TipoEmpaque empaque, Conservacion conservacion, Duration tiempoTransito,
+                               String responsable, Instant momento) {
+        ReglaDeNegocioVioladaException.validar(lote != null, "INV-GUIA", "La guia debe referirse a un lote.");
+        ReglaDeNegocioVioladaException.validar(origen != null && !origen.isBlank(), "INV-GUIA",
+                "La guia de despacho debe indicar el origen.");
+        ReglaDeNegocioVioladaException.validar(destino != null && !destino.isBlank(), "INV-GUIA",
+                "La guia de despacho debe indicar el destino.");
+        ReglaDeNegocioVioladaException.validar(empaque != null && conservacion != null, "R12",
+                "La guia debe declarar el tipo de empaque y la conservacion del lote.");
+        ReglaDeNegocioVioladaException.validar(!conservacion.requiereCadenaFrio() || empaque.esAislanteTermico(), "R12",
+                "El lote requiere cadena de frio (" + conservacion.rango() + ") y el empaque "
+                        + empaque.etiqueta() + " no es aislante termico.");
+        ReglaDeNegocioVioladaException.validar(tiempoTransito != null && !tiempoTransito.isNegative()
+                && !tiempoTransito.isZero(), "R10", "La guia debe declarar un tiempo de transito positivo.");
+        ReglaDeNegocioVioladaException.validar(momento != null, "INV-GUIA", "La guia debe tener fecha de emision.");
+
         GuiaDespachoId id = GuiaDespachoId.nuevo();
         String numero = "GD-" + id.valor().toString().substring(0, 8).toUpperCase();
-        return new GuiaDespacho(id, numero, lote, origen.trim(), destino.trim(),
+        GuiaDespacho guia = new GuiaDespacho(id, numero, lote, almacenOrigen, origen.trim(), destino.trim(),
                 empaque, tiempoTransito, momento);
+        guia.registrar(RegistroCustodia.Tipo.SALIDA_ALMACEN, guia.origen, responsable, momento, null,
+                "Hacia " + guia.destino + " en " + empaque.etiqueta());
+        return guia;
     }
 
-    /** Anade un paso al recorrido. Los hitos solo se agregan al final, nunca se corrigen. */
-    void registrarHito(HitoDespacho hito) {
-        Objects.requireNonNull(hito, "El hito no puede ser nulo.");
-        if (!estado.permiteRegistrarHitos()) {
-            throw new ReglaDeNegocioVioladaException("INV-GUIA",
-                    "La guia " + numero + " esta " + estado + " y no admite hitos nuevos.");
+    /**
+     * Anota un paso del recorrido y lo devuelve, para que el lote lo agregue tambien a su
+     * cadena de custodia. Un registro de entrega cierra la guia.
+     */
+    RegistroCustodia registrar(RegistroCustodia.Tipo tipo, String lugar, String responsable, Instant momento,
+                               BigDecimal temperaturaC, String observacion) {
+        ReglaDeNegocioVioladaException.validar(estado.permiteRegistros(), "INV-GUIA",
+                "La guia " + numero + " esta " + estado + " y no admite registros nuevos.");
+        ReglaDeNegocioVioladaException.validar(tipo != RegistroCustodia.Tipo.COSECHA
+                        && tipo != RegistroCustodia.Tipo.INGRESO_ALMACEN, "INV-GUIA",
+                "Una guia solo registra lo que ocurre durante el traslado.");
+        ReglaDeNegocioVioladaException.validar(momento != null && ultimoRegistro()
+                        .map(ultimo -> !momento.isBefore(ultimo.momento())).orElse(true), "INV-GUIA",
+                "Un registro no puede anotarse antes del registro anterior de la misma guia.");
+
+        AlmacenId almacen = tipo == RegistroCustodia.Tipo.SALIDA_ALMACEN ? almacenOrigen : null;
+        RegistroCustodia registro = RegistroCustodia.crear(tipo, almacen, id, lugar, responsable, momento,
+                temperaturaC, observacion);
+        registros.add(registro);
+        if (estado == Estado.EMITIDA && tipo != RegistroCustodia.Tipo.SALIDA_ALMACEN) {
+            estado = Estado.EN_RUTA;
         }
-        if (!hitos.isEmpty() && hito.momento().isBefore(ultimoHito().orElseThrow().momento())) {
-            throw new ReglaDeNegocioVioladaException("INV-GUIA",
-                    "Un hito no puede registrarse antes del hito anterior de la misma guia.");
+        if (tipo.esTerminal()) {
+            cerrar(momento);
         }
-        hitos.add(hito);
-        if (estado == EstadoGuia.EMITIDA) {
-            estado = EstadoGuia.EN_RUTA;
-        }
-        if (hito.tipo().esTerminal()) {
-            cerrar(hito.momento());
-        }
+        return registro;
     }
 
+    /** Cierra la guia cuando el lote llega a un almacenamiento de destino. */
     void cerrar(Instant momento) {
-        if (estado == EstadoGuia.CERRADA) {
+        if (estado == Estado.CERRADA) {
             return;
         }
-        this.estado = EstadoGuia.CERRADA;
+        ReglaDeNegocioVioladaException.validar(estado != Estado.ANULADA, "INV-GUIA", "Una guia anulada no puede cerrarse.");
+        this.estado = Estado.CERRADA;
         this.fechaCierre = momento;
     }
 
     void anular(Instant momento) {
-        if (estado == EstadoGuia.CERRADA) {
-            throw new ReglaDeNegocioVioladaException("INV-GUIA",
-                    "Una guia cerrada no puede anularse.");
-        }
-        this.estado = EstadoGuia.ANULADA;
+        ReglaDeNegocioVioladaException.validar(estado != Estado.CERRADA, "INV-GUIA", "Una guia cerrada no puede anularse.");
+        this.estado = Estado.ANULADA;
         this.fechaCierre = momento;
     }
 
-    public Optional<HitoDespacho> ultimoHito() {
-        return hitos.isEmpty() ? Optional.empty() : Optional.of(hitos.get(hitos.size() - 1));
+    public Optional<RegistroCustodia> ultimoRegistro() {
+        return registros.isEmpty() ? Optional.empty() : Optional.of(registros.get(registros.size() - 1));
     }
 
-    public boolean registroPasoPor(TipoHito tipo) {
-        return hitos.stream().anyMatch(h -> h.tipo() == tipo);
+    public boolean registroPasoPor(RegistroCustodia.Tipo tipo) {
+        return registros.stream().anyMatch(registro -> registro.tipo() == tipo);
     }
 
     public boolean estaAbierta() {
-        return estado.permiteRegistrarHitos();
+        return estado.permiteRegistros();
     }
 
-    public GuiaDespachoId id() {
-        return id;
+    /** Llegada estimada: la usa el caso de uso para comprobar la ventana de entrega del comprador. */
+    public Instant llegadaEstimada() {
+        return fechaEmision.plus(tiempoTransitoEstimado);
     }
 
-    public String numero() {
-        return numero;
-    }
-
-    public LoteId lote() {
-        return lote;
-    }
-
-    public String origen() {
-        return origen;
-    }
-
-    public String destino() {
-        return destino;
-    }
-
-    public TipoEmpaque empaque() {
-        return empaque;
-    }
-
-    public TiempoTransito tiempoTransitoEstimado() {
-        return tiempoTransitoEstimado;
-    }
-
-    public Instant fechaEmision() {
-        return fechaEmision;
-    }
-
-    public Optional<Instant> fechaCierre() {
-        return Optional.ofNullable(fechaCierre);
-    }
-
-    public EstadoGuia estado() {
-        return estado;
-    }
-
-    /** Copia defensiva: nadie fuera del agregado puede alterar el recorrido. */
-    public List<HitoDespacho> hitos() {
-        return Collections.unmodifiableList(new ArrayList<>(hitos));
-    }
+    public GuiaDespachoId id() { return id; }
+    public String numero() { return numero; }
+    public LoteId lote() { return lote; }
+    public Optional<AlmacenId> almacenOrigen() { return Optional.ofNullable(almacenOrigen); }
+    public String origen() { return origen; }
+    public String destino() { return destino; }
+    public TipoEmpaque empaque() { return empaque; }
+    public Duration tiempoTransitoEstimado() { return tiempoTransitoEstimado; }
+    public Instant fechaEmision() { return fechaEmision; }
+    public Optional<Instant> fechaCierre() { return Optional.ofNullable(fechaCierre); }
+    public Estado estado() { return estado; }
+    public List<RegistroCustodia> registros() { return List.copyOf(registros); }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
         return o instanceof GuiaDespacho otra && id.equals(otra.id);
     }
 

@@ -1,25 +1,23 @@
 package com.uniquindio.ecommerce.application.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 /**
- * Request: un comprador compra producto de uno o varios lotes.
- * Mapea a {@code Lote.reservar(...)} por cada item, {@code Compra.agregarProducto(...)}
- * y finalmente {@code Compra.confirmar()}.
+ * Request: un comprador compra de uno o varios lotes. Mapea a {@code Lote.reservar(...)}
+ * por item, {@code Compra.agregarDetalle(...)} y {@code Compra.confirmar()}.
+ * No trae precio: se toma del lote, para que el cliente no pueda fijarlo.
  *
- * <p>No trae precio: el precio unitario se toma del {@code PrecioFinca} del lote en el
- * servidor. Si viniera del cliente, cualquiera podria comprar al precio que quisiera.</p>
- *
- * @param items lineas de la compra; no puede venir vacia porque una compra sin detalles
- *              no puede confirmarse (INV-COMPRA-VACIA).
+ * @param compradorId quien compra; la compra no existe sin comprador.
+ * @param items       lineas de la compra; vacia no se puede confirmar (INV-COMPRA-VACIA).
  */
-public record RealizarCompraRequest(List<ItemCompra> items) {
+public record RealizarCompraRequest(UUID compradorId, List<Item> items) {
 
     /**
-     * @param loteId   UUID del lote del que se compra; se usa para cargar el agregado {@code Lote}
-     *                 y reservar (regla 3) y para el {@code LoteId} del {@code DetalleCompra}.
-     * @param cantidad unidades a comprar; el lote la rechaza si supera su disponible (regla 3).
+     * @param loteId   lote del que se compra.
+     * @param cantidad cuanto se compra, en la unidad del lote; no puede superar su disponible (regla 3).
      */
-    public record ItemCompra(String loteId, int cantidad) {
+    public record Item(UUID loteId, BigDecimal cantidad) {
     }
 }
