@@ -1,14 +1,15 @@
 package com.uniquindio.ecommerce.application.port.in;
 
 import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
+import com.uniquindio.ecommerce.domain.catalogo.RegistroCustodia;
 import com.uniquindio.ecommerce.domain.valueobject.catalogo.Cantidad;
+import com.uniquindio.ecommerce.domain.valueobject.catalogo.PrecioFinca;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.AlmacenId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.ProductoId;
-import com.uniquindio.ecommerce.domain.valueobject.identidad.PuntoAcopioId;
-import com.uniquindio.ecommerce.domain.valueobject.logistica.HitoDespacho;
+import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.Calidad;
 import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.FichaTrazabilidad;
-import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.SelloOrigen;
 import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.TipoCultivo;
 
 import java.time.LocalDate;
@@ -16,48 +17,44 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Casos de uso <b>Consultar trazabilidad</b> y <b>Consultar productos</b>.
- *
- * <p>Las consultas devuelven <i>vistas</i> (records planos), no el agregado. Es
- * deliberado: exponer el {@code Lote} a la capa web dejaria que un controlador
- * invocara {@code despachar()} por accidente. La vista lleva solo lo que el
- * comprador necesita ver.</p>
+ * Casos de uso <b>Consultar trazabilidad</b> y <b>Consultar productos</b>. Devuelven vistas
+ * (records planos), nunca el agregado, para que la capa web no invoque su comportamiento.
  */
 public interface ConsultarLoteUseCase {
 
-    /** Caso de uso Consultar trazabilidad: el origen completo que el comprador quiere ver. */
+    /** Origen, calidad y cadena de custodia completa del lote. */
     VistaTrazabilidad consultarTrazabilidad(LoteId lote);
 
-    /** Lotes publicados y con existencia de un producto del catalogo. */
-    List<VistaLoteDisponible> consultarDisponiblesDe(ProductoId producto);
+    /** Lotes disponibles de un producto, de todos los campesinos, del mejor al peor. */
+    List<VistaLote> consultarDisponiblesDe(ProductoId producto);
 
-    List<VistaLoteDisponible> consultarPorCampesino(CampesinoId campesino);
+    Optional<VistaLote> mejorLoteDe(ProductoId producto);
 
-    /** Regla 16: lotes de un punto de acopio ordenados por prioridad de despacho. */
-    List<VistaLoteDisponible> consultarOrdenDeDespacho(PuntoAcopioId puntoAcopio, TipoCultivo tipoCultivo);
+    List<VistaLote> consultarPorCampesino(CampesinoId campesino);
 
-    /**
-     * Vista de trazabilidad: es la propuesta de valor del marketplace convertida en
-     * datos, el origen que permite al comprador saltarse la cadena de intermediacion.
-     */
+    /** Regla 16: lotes de un almacenamiento en el orden en que deben despacharse. */
+    List<VistaLote> consultarOrdenDeDespacho(AlmacenId almacen, TipoCultivo tipoCultivo);
+
     record VistaTrazabilidad(LoteId lote,
                              String codigo,
+                             String producto,
                              FichaTrazabilidad ficha,
-                             Optional<SelloOrigen> selloOrigen,
-                             String denominacionOrigen,
+                             Calidad calidadDeclarada,
+                             Optional<Calidad> calidadVerificada,
                              LocalDate fechaCosecha,
                              Optional<LocalDate> fechaLimiteConsumo,
                              long diasVidaUtilRestante,
-                             List<HitoDespacho> recorrido) {
+                             List<RegistroCustodia> custodia) {
     }
 
-    /** Vista de catalogo: lo minimo para listar un lote disponible. */
-    record VistaLoteDisponible(LoteId lote,
-                               String codigo,
-                               ProductoId producto,
-                               Cantidad cantidadDisponible,
-                               EstadoLote estado,
-                               long diasVidaUtilRestante,
-                               boolean tieneSelloVigente) {
+    record VistaLote(LoteId lote,
+                     String codigo,
+                     String producto,
+                     CampesinoId campesino,
+                     Cantidad cantidadDisponible,
+                     PrecioFinca precio,
+                     int puntajeCalidad,
+                     long diasVidaUtilRestante,
+                     EstadoLote estado) {
     }
 }

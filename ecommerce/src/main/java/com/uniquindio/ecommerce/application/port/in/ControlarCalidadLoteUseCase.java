@@ -1,40 +1,27 @@
 package com.uniquindio.ecommerce.application.port.in;
 
-import com.uniquindio.ecommerce.domain.valueobject.catalogo.Calibre;
-import com.uniquindio.ecommerce.domain.valueobject.catalogo.MedicionCalibre;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
-import com.uniquindio.ecommerce.domain.valueobject.logistica.TipoHito;
-import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.SelloOrigen;
+import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.Calidad;
 
 import java.math.BigDecimal;
 
 /**
- * Casos de uso de control de calidad sobre el lote en ruta.
- *
- * <p>Agrupa las reglas 11, 17 y 18, que comparten el mismo desenlace: el lote queda
- * detenido en revision y no continua hasta que alguien lo valide o corrija el dato
- * de origen.</p>
+ * Control de calidad y de condiciones (reglas 11 y 18). Cada control queda en la cadena
+ * de custodia; si algo no cuadra, el lote queda en revision hasta que se valide.
  */
 public interface ControlarCalidadLoteUseCase {
 
-    /** Anota un paso del recorrido; si trae temperatura, evalua la regla 11. */
-    void registrarHito(RegistrarHitoCommand comando);
+    /** Regla 18: devuelve {@code true} si la calidad observada coincide con la declarada. */
+    boolean inspeccionarCalidad(LoteId lote, Calidad observada, String inspector);
 
-    /** Regla 11: reporte explicito de ruptura de la cadena de frio. */
-    void reportarRupturaCadenaFrio(LoteId lote, String motivo);
+    /** Regla 11. */
+    void registrarTemperatura(LoteId lote, BigDecimal temperaturaC, String responsable);
 
-    /** Regla 18: contrasta la medicion real contra el calibre declarado. */
-    boolean verificarCalibre(LoteId lote, MedicionCalibre medicion);
+    void reportarIncidencia(LoteId lote, String detalle, String responsable);
 
-    /** Regla 11: libera un lote detenido tras la validacion manual. */
-    void validarLoteEnRevision(LoteId lote, String responsable);
+    void validarRevision(LoteId lote, String responsable);
 
-    /** Regla 18: corrige el calibre declarado y libera la revision. */
-    void corregirCalibre(LoteId lote, Calibre calibreReal, String responsable);
-
-    /** Regla 17: renueva la certificacion de origen vencida. */
-    void renovarCertificacion(LoteId lote, SelloOrigen nuevoSello, String responsable);
-
-    record RegistrarHitoCommand(LoteId lote, TipoHito tipo, String ubicacion, BigDecimal temperaturaC) {
-    }
+    /** Regla 18: el campesino responsable corrige la calidad que declaro. */
+    void corregirCalidadDeclarada(LoteId lote, CampesinoId solicitante, Calidad calidadReal);
 }

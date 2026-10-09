@@ -7,54 +7,57 @@ import java.time.MonthDay;
 import java.util.Objects;
 
 /**
- * Periodo del ano durante el cual un producto agricola se encuentra naturalmente
- * disponible.
- *
- * <p><b>Value Object (record).</b> Se modela con {@link MonthDay} y no con fechas
- * completas porque la temporada es un patron anual recurrente, no un intervalo
- * unico: la cosecha de mora va de abril a junio <i>todos los anos</i>.</p>
- *
- * <p>Soporta la regla del catalogo: un lote de materia prima no puede publicarse
- * fuera de la temporada declarada para su producto. Contempla temporadas que
- * cruzan el fin de ano (por ejemplo noviembre a febrero).</p>
+ * Value Object: periodo del ano en que un producto se cosecha. Es un patron anual,
+ * por eso usa {@link MonthDay}. Admite temporadas que cruzan el fin de ano.
  */
-public record TemporadaCosecha(MonthDay inicio, MonthDay fin, boolean todoElAnio) {
+public final class TemporadaCosecha {
 
-    public TemporadaCosecha {
-        if (!todoElAnio) {
-            Objects.requireNonNull(inicio, "Una temporada no permanente debe tener fecha de inicio.");
-            Objects.requireNonNull(fin, "Una temporada no permanente debe tener fecha de fin.");
-            if (inicio.equals(fin)) {
-                throw new ReglaDeNegocioVioladaException("INV-TEMPORADA",
-                        "El inicio y el fin de la temporada no pueden ser el mismo dia.");
-            }
-        }
+    private final MonthDay inicio;
+    private final MonthDay fin;
+    private final boolean todoElAnio;
+
+    private TemporadaCosecha(MonthDay inicio, MonthDay fin, boolean todoElAnio) {
+        this.inicio = inicio;
+        this.fin = fin;
+        this.todoElAnio = todoElAnio;
     }
 
     public static TemporadaCosecha de(MonthDay inicio, MonthDay fin) {
+        ReglaDeNegocioVioladaException.validar(inicio != null && fin != null, "INV-TEMPORADA",
+                "Una temporada debe tener inicio y fin.");
+        ReglaDeNegocioVioladaException.validar(!inicio.equals(fin), "INV-TEMPORADA",
+                "El inicio y el fin de la temporada no pueden ser el mismo dia.");
         return new TemporadaCosecha(inicio, fin, false);
     }
 
-    /** Productos disponibles todo el ano (transformados, cultivos bajo invernadero). */
     public static TemporadaCosecha permanente() {
         return new TemporadaCosecha(null, null, true);
     }
 
-    /**
-     * Indica si la fecha cae dentro de la temporada. Resuelve el caso de temporadas
-     * que cruzan el cambio de ano invirtiendo la comparacion.
-     */
     public boolean contiene(LocalDate fecha) {
-        Objects.requireNonNull(fecha, "La fecha evaluada no puede ser nula.");
         if (todoElAnio) {
             return true;
         }
         MonthDay dia = MonthDay.from(fecha);
-        boolean cruzaAnio = inicio.isAfter(fin);
-        if (cruzaAnio) {
+        if (inicio.isAfter(fin)) {
             return !dia.isBefore(inicio) || !dia.isAfter(fin);
         }
         return !dia.isBefore(inicio) && !dia.isAfter(fin);
+    }
+
+    public boolean esTodoElAnio() {
+        return todoElAnio;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof TemporadaCosecha otra && todoElAnio == otra.todoElAnio
+                && Objects.equals(inicio, otra.inicio) && Objects.equals(fin, otra.fin);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(inicio, fin, todoElAnio);
     }
 
     @Override
