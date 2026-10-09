@@ -1,70 +1,55 @@
 package com.uniquindio.ecommerce.domain.entity;
 
 import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
+import com.uniquindio.ecommerce.domain.valueobject.catalogo.Cantidad;
+import com.uniquindio.ecommerce.domain.valueobject.catalogo.PrecioFinca;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 
 import java.math.BigDecimal;
-import java.util.Objects;
 import java.util.UUID;
 
 /** Entidad interna del agregado {@link Compra}: una linea de compra sobre un lote. */
 public class DetalleCompra {
 
-    private final UUID detalleId;
+    private final UUID id;
     private final LoteId lote;
-    private final int cantidad;
-    private final BigDecimal precioUnitario;
+    private final Cantidad cantidad;
+    private final PrecioFinca precioUnitario;
 
-    public DetalleCompra(LoteId lote, int cantidad, BigDecimal precioUnitario) {
-        Objects.requireNonNull(lote, "El detalle debe referirse a un lote.");
-        if (cantidad <= 0) {
-            throw new ReglaDeNegocioVioladaException("INV-COMPRA-DETALLE",
-                    "La cantidad debe ser mayor que cero.");
-        }
-        if (precioUnitario == null || precioUnitario.signum() <= 0) {
-            throw new ReglaDeNegocioVioladaException("INV-COMPRA-DETALLE",
-                    "El precio unitario debe ser mayor que cero.");
-        }
-        this.detalleId = UUID.randomUUID();
+    private DetalleCompra(UUID id, LoteId lote, Cantidad cantidad, PrecioFinca precioUnitario) {
+        this.id = id;
         this.lote = lote;
         this.cantidad = cantidad;
         this.precioUnitario = precioUnitario;
     }
 
-    public BigDecimal calcularSubtotal() {
-        return precioUnitario.multiply(BigDecimal.valueOf(cantidad));
+    public static DetalleCompra crear(LoteId lote, Cantidad cantidad, PrecioFinca precioUnitario) {
+        ReglaDeNegocioVioladaException.validar(lote != null, "INV-COMPRA-DETALLE", "El detalle debe referirse a un lote.");
+        ReglaDeNegocioVioladaException.validar(cantidad != null && !cantidad.esCero(), "INV-COMPRA-DETALLE",
+                "La cantidad del detalle debe ser mayor que cero.");
+        ReglaDeNegocioVioladaException.validar(precioUnitario != null, "INV-COMPRA-DETALLE",
+                "El detalle requiere precio unitario.");
+        ReglaDeNegocioVioladaException.validar(cantidad.unidad() == precioUnitario.unidadReferencia(), "INV-COMPRA-DETALLE",
+                "La cantidad y el precio deben estar en la misma unidad.");
+        return new DetalleCompra(UUID.randomUUID(), lote, cantidad, precioUnitario);
     }
 
-    public UUID getDetalleId() {
-        return detalleId;
+    public BigDecimal subtotal() {
+        return precioUnitario.totalPara(cantidad);
     }
 
-    public LoteId getLote() {
-        return lote;
-    }
-
-    public int getCantidad() {
-        return cantidad;
-    }
-
-    public BigDecimal getPrecioUnitario() {
-        return precioUnitario;
-    }
-
-    public BigDecimal getSubtotal() {
-        return calcularSubtotal();
-    }
+    public UUID getId() { return id; }
+    public LoteId getLote() { return lote; }
+    public Cantidad getCantidad() { return cantidad; }
+    public PrecioFinca getPrecioUnitario() { return precioUnitario; }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        return o instanceof DetalleCompra otro && detalleId.equals(otro.detalleId);
+        return o instanceof DetalleCompra otro && id.equals(otro.id);
     }
 
     @Override
     public int hashCode() {
-        return detalleId.hashCode();
+        return id.hashCode();
     }
 }

@@ -2,143 +2,115 @@ package com.uniquindio.ecommerce.domain.entity;
 
 import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import com.uniquindio.ecommerce.domain.valueobject.EstadoCompra;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.CompradorId;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.PedidoId;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 
 /**
- * Agregado raiz de la compra. {@link DetalleCompra} es entidad interna: solo se
- * crea y se modifica a traves de la compra. Los lotes se referencian por
- * {@code LoteId}, nunca por objeto.
+ * Agregado raiz: compra de un comprador. {@link DetalleCompra} es entidad interna y
+ * referencia al lote solo por su {@code LoteId}. El id de la compra es tambien el
+ * {@link PedidoId} con el que se reserva en cada lote.
  *
- * <p>Invariantes del agregado:</p>
+ * <p>Invariantes:</p>
  * <ul>
- *   <li><b>INV-COMPRA-VACIA:</b> nunca puede confirmarse una compra sin al menos un detalle.</li>
- *   <li><b>INV-COMPRA-ESTADO:</b> nunca puede agregarse productos, confirmarse ni cancelarse
- *       una compra que ya no esta PENDIENTE.</li>
- *   <li><b>INV-COMPRA-TOTAL:</b> el total siempre debe ser la suma de los subtotales de sus detalles.</li>
- *   <li><b>INV-COMPRA-REEMBOLSO:</b> nunca puede solicitarse reembolso de una compra que no este COMPLETADA.</li>
+ *   <li><b>INV-COMPRA-VACIA:</b> nunca puede confirmarse una compra sin detalles.</li>
+ *   <li><b>INV-COMPRA-ESTADO:</b> nunca puede agregarse detalles, confirmarse ni cancelarse si no esta PENDIENTE.</li>
+ *   <li><b>INV-COMPRA-REEMBOLSO:</b> nunca puede reembolsarse una compra que no este COMPLETADA.</li>
+ *   <li><b>INV-COMPRA-TOTAL:</b> el total siempre es la suma de los subtotales de sus detalles.</li>
  * </ul>
  */
 public class Compra {
 
-    private final UUID compraId;
-    private final LocalDateTime fecha;
-    private EstadoCompra estado;
-    private BigDecimal subtotal;
-    private BigDecimal total;
-    private String numeroTransaccion;
-
+    private final PedidoId id;
+    private final CompradorId compradorId;
+    private final Instant fecha;
     private final List<DetalleCompra> detalles;
+    private EstadoCompra estado;
 
-    public Compra() {
-        this(UUID.randomUUID());
-    }
-
-    public Compra(UUID compraId) {
-        this.compraId = Objects.requireNonNull(compraId, "La compra requiere un identificador.");
-        this.fecha = LocalDateTime.now();
-        this.estado = EstadoCompra.PENDIENTE;
-        this.subtotal = BigDecimal.ZERO;
-        this.total = BigDecimal.ZERO;
+    private Compra(Builder builder) {
+        this.id = builder.id;
+        this.compradorId = builder.compradorId;
+        this.fecha = builder.fecha;
         this.detalles = new ArrayList<>();
+        this.estado = EstadoCompra.PENDIENTE;
     }
 
-    public void agregarProducto(DetalleCompra detalle) {
-        if (detalle == null) {
-            throw new ReglaDeNegocioVioladaException("INV-COMPRA-DETALLE",
-                    "El detalle de compra no puede ser nulo.");
-        }
-        exigirPendiente("agregar productos a");
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public void agregarDetalle(DetalleCompra detalle) {
+        ReglaDeNegocioVioladaException.validar(detalle != null, "INV-COMPRA-DETALLE", "El detalle es obligatorio.");
+        exigirPendiente("agregar detalles a");
         detalles.add(detalle);
-        calcularTotal();
-    }
-
-    public BigDecimal calcularTotal() {
-        subtotal = detalles.stream()
-                .map(DetalleCompra::calcularSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        total = subtotal;
-        return total;
     }
 
     public void confirmar() {
         exigirPendiente("confirmar");
-        if (detalles.isEmpty()) {
-            throw new ReglaDeNegocioVioladaException("INV-COMPRA-VACIA",
-                    "No se puede confirmar una compra sin productos.");
-        }
-        calcularTotal();
-        estado = EstadoCompra.COMPLETADA;
+        ReglaDeNegocioVioladaException.validar(!detalles.isEmpty(), "INV-COMPRA-VACIA",
+                "No se puede confirmar una compra sin detalles.");
+        this.estado = EstadoCompra.COMPLETADA;
     }
 
     public void cancelar() {
         exigirPendiente("cancelar");
-        estado = EstadoCompra.CANCELADA;
+        this.estado = EstadoCompra.CANCELADA;
     }
 
-    public Reembolso solicitarReembolso() {
-        if (!estaCompletada()) {
-            throw new ReglaDeNegocioVioladaException("INV-COMPRA-REEMBOLSO",
-                    "Solo se puede solicitar un reembolso de una compra completada.");
-        }
-        return new Reembolso("Reembolso de la compra", total);
+    public void reembolsar() {
+        ReglaDeNegocioVioladaException.validar(estado == EstadoCompra.COMPLETADA, "INV-COMPRA-REEMBOLSO",
+                "Solo se puede reembolsar una compra COMPLETADA. Estado actual: " + estado);
+        this.estado = EstadoCompra.REEMBOLSADA;
     }
 
-    public boolean estaCompletada() {
-        return estado == EstadoCompra.COMPLETADA;
+    public BigDecimal total() {
+        return detalles.stream()
+                .map(DetalleCompra::subtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private void exigirPendiente(String operacion) {
-        if (estado != EstadoCompra.PENDIENTE) {
-            throw new ReglaDeNegocioVioladaException("INV-COMPRA-ESTADO",
-                    "No se puede " + operacion + " una compra en estado " + estado
-                            + "; solo se permite si esta PENDIENTE.");
-        }
+        ReglaDeNegocioVioladaException.validar(estado == EstadoCompra.PENDIENTE, "INV-COMPRA-ESTADO",
+                "No se puede " + operacion + " una compra en estado " + estado + ".");
     }
 
-    public UUID getCompraId() {
-        return compraId;
-    }
-
-    public LocalDateTime getFecha() {
-        return fecha;
-    }
-
-    public EstadoCompra getEstado() {
-        return estado;
-    }
-
-    public BigDecimal getSubtotal() {
-        return subtotal;
-    }
-
-    public BigDecimal getTotal() {
-        return total;
-    }
-
-    public String getNumeroTransaccion() {
-        return numeroTransaccion;
-    }
-
-    public List<DetalleCompra> getDetalles() {
-        return List.copyOf(detalles);
-    }
+    public PedidoId getId() { return id; }
+    public CompradorId getCompradorId() { return compradorId; }
+    public Instant getFecha() { return fecha; }
+    public EstadoCompra getEstado() { return estado; }
+    public List<DetalleCompra> getDetalles() { return List.copyOf(detalles); }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        return o instanceof Compra otra && compraId.equals(otra.compraId);
+        return o instanceof Compra otra && id.equals(otra.id);
     }
 
     @Override
     public int hashCode() {
-        return compraId.hashCode();
+        return id.hashCode();
+    }
+
+    public static final class Builder {
+        private PedidoId id = PedidoId.nuevo();
+        private CompradorId compradorId;
+        private Instant fecha;
+
+        private Builder() {
+        }
+
+        public Builder id(PedidoId id) { this.id = id; return this; }
+        public Builder compradorId(CompradorId compradorId) { this.compradorId = compradorId; return this; }
+        public Builder fecha(Instant fecha) { this.fecha = fecha; return this; }
+
+        public Compra build() {
+            ReglaDeNegocioVioladaException.validar(id != null, "INV-COMPRA", "La compra requiere id.");
+            ReglaDeNegocioVioladaException.validar(compradorId != null, "INV-COMPRA", "La compra requiere un comprador.");
+            ReglaDeNegocioVioladaException.validar(fecha != null, "INV-COMPRA", "La compra requiere fecha.");
+            return new Compra(this);
+        }
     }
 }

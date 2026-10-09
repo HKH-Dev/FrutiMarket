@@ -6,32 +6,20 @@ import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 import java.util.Optional;
 
 /**
- * Caso de uso <b>Publicar producto</b> aplicado al lote.
- *
- * <p>Coordina la regla 1 (que vive fuera del lote, en el agregado Campesino) con
- * las reglas 2 y 8 (que vive dentro del lote). El caso de uso no decide nada del
- * negocio: pregunta al puerto de autorizacion, delega en el agregado y guarda.</p>
+ * Caso de uso <b>Publicar producto</b> aplicado al lote. Coordina la regla 1 (fuera del
+ * lote, en el campesino) con las reglas 2 y 8 (dentro del lote).
  */
 public interface PublicarLoteUseCase {
 
-    void publicar(PublicarLoteCommand comando);
+    void publicar(LoteId lote, CampesinoId solicitante);
 
-    void desactivar(DesactivarLoteCommand comando);
+    void desactivar(LoteId lote, CampesinoId solicitante, String motivo);
 
     void reactivar(LoteId lote, CampesinoId solicitante);
 
-    /** Regla 5: retira definitivamente. Falla si el lote tiene pedidos activos. */
+    /** Regla 5: retiro definitivo. Falla si el lote tiene pedidos activos. */
     void retirar(LoteId lote, CampesinoId solicitante);
 
-    /**
-     * Devuelve el motivo por el que el lote no puede publicarse, sin lanzar
-     * excepcion. Lo usa la interfaz para mostrarle al campesino que le falta.
-     */
+    /** Motivo por el que el lote no puede publicarse, sin lanzar excepcion. */
     Optional<String> diagnosticarPublicacion(LoteId lote);
-
-    record PublicarLoteCommand(LoteId lote, CampesinoId solicitante) {
-    }
-
-    record DesactivarLoteCommand(LoteId lote, CampesinoId solicitante, String motivo) {
-    }
 }

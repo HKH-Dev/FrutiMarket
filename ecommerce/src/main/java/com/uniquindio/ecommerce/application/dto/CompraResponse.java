@@ -4,45 +4,52 @@ import com.uniquindio.ecommerce.domain.entity.Compra;
 import com.uniquindio.ecommerce.domain.entity.DetalleCompra;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 /**
- * Response: resultado de {@code RealizarCompraUseCase}, el comprobante que ve el comprador.
+ * Response: comprobante de {@code RealizarCompraUseCase}.
  *
- * @param compraId UUID de la compra; necesario para consultarla o pedir reembolso despues.
- * @param estado   nombre de {@code EstadoCompra}; confirma si la compra quedo COMPLETADA.
- * @param fecha    momento de la compra, para el historial del comprador.
- * @param total    suma de subtotales (INV-COMPRA-TOTAL); lo calcula el dominio, nunca el cliente.
- * @param detalles lineas compradas, para que el comprador verifique que pago.
+ * @param compraId    id de la compra, para consultarla o reembolsarla.
+ * @param compradorId quien compro.
+ * @param estado      confirma si quedo COMPLETADA.
+ * @param fecha       momento de la compra.
+ * @param total       suma de subtotales (INV-COMPRA-TOTAL), calculada por el dominio.
+ * @param detalles    lineas compradas.
  */
 public record CompraResponse(
-        String compraId,
+        UUID compraId,
+        UUID compradorId,
         String estado,
-        LocalDateTime fecha,
+        Instant fecha,
         BigDecimal total,
-        List<DetalleResponse> detalles) {
+        List<Detalle> detalles) {
 
     /**
      * @param loteId         lote del que salio el producto (trazabilidad hacia el campesino).
-     * @param cantidad       unidades compradas.
-     * @param precioUnitario precio aplicado, tomado del lote al momento de la compra.
+     * @param cantidad       cantidad comprada.
+     * @param unidadMedida   unidad de la cantidad.
+     * @param precioUnitario precio de finca aplicado.
      * @param subtotal       cantidad x precio, para que el total sea verificable.
      */
-    public record DetalleResponse(String loteId, int cantidad, BigDecimal precioUnitario, BigDecimal subtotal) {
+    public record Detalle(UUID loteId, BigDecimal cantidad, String unidadMedida,
+                          BigDecimal precioUnitario, BigDecimal subtotal) {
 
-        static DetalleResponse desde(DetalleCompra detalle) {
-            return new DetalleResponse(detalle.getLote().toString(), detalle.getCantidad(),
-                    detalle.getPrecioUnitario(), detalle.getSubtotal());
+        static Detalle desde(DetalleCompra detalle) {
+            return new Detalle(detalle.getLote().valor(), detalle.getCantidad().valor(),
+                    detalle.getCantidad().unidad().simbolo(),
+                    detalle.getPrecioUnitario().valorPorUnidad(), detalle.subtotal());
         }
     }
 
     public static CompraResponse desde(Compra compra) {
         return new CompraResponse(
-                compra.getCompraId().toString(),
+                compra.getId().valor(),
+                compra.getCompradorId().valor(),
                 compra.getEstado().name(),
                 compra.getFecha(),
-                compra.getTotal(),
-                compra.getDetalles().stream().map(DetalleResponse::desde).toList());
+                compra.total(),
+                compra.getDetalles().stream().map(Detalle::desde).toList());
     }
 }

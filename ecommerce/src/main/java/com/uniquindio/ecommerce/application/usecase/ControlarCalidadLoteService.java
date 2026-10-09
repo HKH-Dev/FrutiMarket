@@ -5,52 +5,45 @@ import com.uniquindio.ecommerce.application.port.out.PublicadorEventos;
 import com.uniquindio.ecommerce.application.port.out.Reloj;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
-import com.uniquindio.ecommerce.domain.valueobject.catalogo.Calibre;
-import com.uniquindio.ecommerce.domain.valueobject.catalogo.MedicionCalibre;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
-import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.SelloOrigen;
+import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.Calidad;
 
-import java.util.Objects;
+import java.math.BigDecimal;
 
-public class ControlarCalidadLoteService extends ServicioDeAplicacion
-        implements ControlarCalidadLoteUseCase {
+public class ControlarCalidadLoteService extends ServicioDeAplicacion implements ControlarCalidadLoteUseCase {
 
     public ControlarCalidadLoteService(LoteRepository loteRepository, Reloj reloj, PublicadorEventos publicadorEventos) {
         super(loteRepository, reloj, publicadorEventos);
     }
 
     @Override
-    public void registrarHito(RegistrarHitoCommand comando) {
-        Objects.requireNonNull(comando, "El comando de hito es obligatorio.");
-        ejecutarSobre(comando.lote(), lote -> lote.registrarHitoDespacho(
-                comando.tipo(), comando.ubicacion(), comando.temperaturaC(), reloj.ahora()));
-    }
-
-    @Override
-    public void reportarRupturaCadenaFrio(LoteId lote, String motivo) {
-        ejecutarSobre(lote, agregado -> agregado.registrarRupturaCadenaFrio(motivo, reloj.ahora()));
-    }
-
-    @Override
-    public boolean verificarCalibre(LoteId lote, MedicionCalibre medicion) {
-        Lote agregado = cargar(lote);
-        boolean coincide = agregado.verificarCalibre(medicion, reloj.ahora());
-        persistirYPublicar(agregado);
+    public boolean inspeccionarCalidad(LoteId loteId, Calidad observada, String inspector) {
+        Lote lote = cargar(loteId);
+        boolean coincide = lote.inspeccionarCalidad(observada, inspector, reloj.ahora());
+        persistirYPublicar(lote);
         return coincide;
     }
 
     @Override
-    public void validarLoteEnRevision(LoteId lote, String responsable) {
+    public void registrarTemperatura(LoteId lote, BigDecimal temperaturaC, String responsable) {
+        ejecutarSobre(lote, agregado -> agregado.registrarTemperatura(temperaturaC, responsable, reloj.ahora()));
+    }
+
+    @Override
+    public void reportarIncidencia(LoteId lote, String detalle, String responsable) {
+        ejecutarSobre(lote, agregado -> agregado.reportarIncidencia(detalle, responsable, reloj.ahora()));
+    }
+
+    @Override
+    public void validarRevision(LoteId lote, String responsable) {
         ejecutarSobre(lote, agregado -> agregado.validarRevision(responsable, reloj.ahora()));
     }
 
     @Override
-    public void corregirCalibre(LoteId lote, Calibre calibreReal, String responsable) {
-        ejecutarSobre(lote, agregado -> agregado.corregirCalibre(calibreReal, responsable, reloj.ahora()));
-    }
-
-    @Override
-    public void renovarCertificacion(LoteId lote, SelloOrigen nuevoSello, String responsable) {
-        ejecutarSobre(lote, agregado -> agregado.renovarSelloOrigen(nuevoSello, responsable, reloj.ahora()));
+    public void corregirCalidadDeclarada(LoteId loteId, CampesinoId solicitante, Calidad calidadReal) {
+        Lote lote = cargarComoResponsable(loteId, solicitante);
+        lote.corregirCalidadDeclarada(calidadReal, "Campesino " + solicitante, reloj.ahora());
+        persistirYPublicar(lote);
     }
 }

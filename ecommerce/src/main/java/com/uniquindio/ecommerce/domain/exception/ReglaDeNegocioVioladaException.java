@@ -1,6 +1,6 @@
 package com.uniquindio.ecommerce.domain.exception;
 
-
+/** Se viola una regla del negocio. {@code codigoRegla} indica cual, por ejemplo "R3" o "INV-CANTIDAD". */
 public class ReglaDeNegocioVioladaException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
@@ -12,11 +12,12 @@ public class ReglaDeNegocioVioladaException extends RuntimeException {
         this.codigoRegla = codigoRegla;
     }
 
-    public ReglaDeNegocioVioladaException(String mensaje) {
-        this("INV", mensaje);
+    public static void validar(boolean condicion, String codigoRegla, String mensaje) {
+        if (!condicion) {
+            throw new ReglaDeNegocioVioladaException(codigoRegla, mensaje);
+        }
     }
 
-    /** Codigo de la regla violada, por ejemplo {@code "R10"} o {@code "INV-CANTIDAD"}. */
     public String codigoRegla() {
         return codigoRegla;
     }

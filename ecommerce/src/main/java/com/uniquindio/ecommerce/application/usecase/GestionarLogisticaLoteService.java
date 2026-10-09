@@ -1,96 +1,100 @@
 package com.uniquindio.ecommerce.application.usecase;
 
 import com.uniquindio.ecommerce.application.port.in.GestionarLogisticaLoteUseCase;
-import com.uniquindio.ecommerce.application.port.out.CentroRedistribucionPort;
 import com.uniquindio.ecommerce.application.port.out.PublicadorEventos;
 import com.uniquindio.ecommerce.application.port.out.Reloj;
-import com.uniquindio.ecommerce.application.usecase.ServicioDeAplicacion;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
-import com.uniquindio.ecommerce.domain.exception.DespachoNoPermitidoException;
+import com.uniquindio.ecommerce.domain.entity.Comprador;
+import com.uniquindio.ecommerce.domain.entity.PuntoAlmacenamiento;
+import com.uniquindio.ecommerce.domain.exception.RecursoNoEncontradoException;
+import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
+import com.uniquindio.ecommerce.domain.repository.CompradorRepository;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
-import com.uniquindio.ecommerce.domain.service.PoliticaFefo;
+import com.uniquindio.ecommerce.domain.repository.PuntoAlmacenamientoRepository;
+import com.uniquindio.ecommerce.domain.service.SeleccionLotes;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.AlmacenId;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.CompradorId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
-import com.uniquindio.ecommerce.domain.valueobject.identidad.PuntoAcopioId;
-import com.uniquindio.ecommerce.domain.valueobject.logistica.CondicionConservacion;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
-import java.util.Objects;
 
+/**
+ * Logistica del lote. Lo que pertenece al lote (vida util, revision, cadena de frio)
+ * lo valida el lote; lo que pertenece al almacenamiento (capacidad, cultivos, cobertura)
+ * lo valida el almacenamiento; aqui solo se coordinan y se aplica el FEFO (regla 16).
+ * Al integrarlo con JPA debe ser {@code @Transactional}: se modifican dos agregados.
+ */
 public class GestionarLogisticaLoteService extends ServicioDeAplicacion implements GestionarLogisticaLoteUseCase {
 
-    private static final ZoneId ZONA_OPERACION = ZoneId.of("America/Bogota");
+    private final PuntoAlmacenamientoRepository almacenRepository;
+    private final CompradorRepository compradorRepository;
 
-    private final CentroRedistribucionPort centroRedistribucion;
-
-    public GestionarLogisticaLoteService(LoteRepository loteRepository,
-                                         Reloj reloj,
-                                         PublicadorEventos publicadorEventos,
-                                         CentroRedistribucionPort centroRedistribucion) {
+    public GestionarLogisticaLoteService(LoteRepository loteRepository, Reloj reloj, PublicadorEventos publicadorEventos,
+                                         PuntoAlmacenamientoRepository almacenRepository,
+                                         CompradorRepository compradorRepository) {
         super(loteRepository, reloj, publicadorEventos);
-        this.centroRedistribucion = Objects.requireNonNull(centroRedistribucion,
-                "El puerto de centros de redistribucion es obligatorio.");
+        this.almacenRepository = almacenRepository;
+        this.compradorRepository = compradorRepository;
     }
 
     @Override
-    public void declararCondicionConservacion(LoteId lote, CondicionConservacion condicion) {
-        ejecutarSobre(lote, agregado -> agregado.declararCondicionConservacion(condicion, reloj.ahora()));
-    }
-
-    @Override
-    public void enviarAPuntoAcopio(LoteId lote, PuntoAcopioId puntoAcopio) {
-        ejecutarSobre(lote, agregado -> agregado.enviarAPuntoAcopio(puntoAcopio, reloj.ahora()));
-    }
-
-    @Override
-    public void despacharACentro(DespacharLoteCommand comando) {
-        Objects.requireNonNull(comando, "El comando de despacho es obligatorio.");
-        Instant ahora = reloj.ahora();
-        Lote lote = cargar(comando.lote());
-
-        // Regla 13: el centro debe estar habilitado para el tipo de cultivo del lote.
-        if (!centroRedistribucion.estaHabilitadoParaCultivo(comando.centroDestino(), lote.tipoCultivo())) {
-            throw new DespachoNoPermitidoException("R13",
-                    "el centro de redistribucion " + centroRedistribucion.nombreDe(comando.centroDestino())
-                            + " no esta habilitado para recibir " + lote.tipoCultivo().etiqueta() + ".");
-        }
-
-        // Regla 14: la llegada estimada debe caer dentro de la ventana de entrega.
-        if (comando.ventanaEntrega() != null) {
-            LocalDateTime llegadaEstimada = LocalDateTime.ofInstant(
-                    ahora.plus(comando.tiempoTransito().duracion()), ZONA_OPERACION);
-            comando.ventanaEntrega().exigirQueContenga(llegadaEstimada);
-        }
-
-        // Regla 16: no se saca un lote si otro del mismo cultivo vence antes.
-        lote.puntoAcopioActual().ifPresent(punto -> {
-            List<Lote> candidatos = loteRepository.buscarEnAcopioPorCultivo(punto, lote.tipoCultivo());
-            if (!PoliticaFefo.respetaPrioridad(lote, candidatos, ahora)) {
-                Lote prioritario = PoliticaFefo.siguienteADespachar(candidatos, ahora).orElse(lote);
-                throw new DespachoNoPermitidoException("R16",
-                        "existe otro lote del mismo cultivo con menor vida util restante ("
-                                + prioritario.codigo() + ") que debe despacharse primero.");
-            }
-        });
-
-        // Reglas 10, 11, 12 y 17: las valida el propio agregado.
-        lote.despachar(centroRedistribucion.nombreDe(comando.centroDestino()),
-                comando.empaque(), comando.tiempoTransito(), ahora);
+    public void ingresarAAlmacen(LoteId loteId, AlmacenId almacenId, String responsable) {
+        Lote lote = cargar(loteId);
+        PuntoAlmacenamiento almacen = cargarAlmacen(almacenId);
+        almacen.recibirLote(lote.id(), lote.tipoCultivo(), lote.conservacion());
+        lote.ingresarAAlmacen(almacen.id(), almacen.nombre(), responsable, reloj.ahora());
+        almacenRepository.registrar(almacen);
         persistirYPublicar(lote);
     }
 
     @Override
-    public void confirmarEntrega(ConfirmarEntregaCommand comando) {
-        Objects.requireNonNull(comando, "El comando de entrega es obligatorio.");
-        // Regla 15: la direccion del destinatario debe estar en una zona de cobertura habilitada.
-        if (!centroRedistribucion.cubreDireccion(comando.centroOrigen(), comando.direccionEntrega())) {
-            throw new DespachoNoPermitidoException("R15",
-                    "la direccion del destinatario esta fuera de la zona de cobertura del centro "
-                            + centroRedistribucion.nombreDe(comando.centroOrigen()) + ".");
-        }
-        ejecutarSobre(comando.lote(),
-                lote -> lote.confirmarEntrega(comando.destinatario(), reloj.ahora()));
+    public void despacharAAlmacen(LoteId loteId, AlmacenId destinoId, Duration tiempoTransito, String responsable) {
+        Lote lote = cargar(loteId);
+        PuntoAlmacenamiento destino = cargarAlmacen(destinoId);
+        ReglaDeNegocioVioladaException.validar(destino.puedeRecibir(lote.tipoCultivo(), lote.conservacion()), "R13",
+                destino.nombre() + " no puede recibir este lote (cultivo, conservacion o capacidad).");
+        despachar(lote, destino.nombre(), tiempoTransito, responsable);
+    }
+
+    @Override
+    public void despacharAComprador(LoteId loteId, CompradorId compradorId, Duration tiempoTransito, String responsable) {
+        Lote lote = cargar(loteId);
+        Comprador comprador = compradorRepository.obtenerComprador(compradorId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Comprador", compradorId));
+        PuntoAlmacenamiento origen = almacenActualDe(lote);
+        ReglaDeNegocioVioladaException.validar(origen.cubre(comprador.getMunicipio()), "R15",
+                origen.nombre() + " no entrega en " + comprador.getMunicipio() + ".");
+        despachar(lote, "Comprador " + comprador.getNombre(), tiempoTransito, responsable);
+    }
+
+    @Override
+    public void confirmarEntrega(LoteId lote, String receptor, String responsable) {
+        ejecutarSobre(lote, agregado -> agregado.confirmarEntrega(receptor, responsable, reloj.ahora()));
+    }
+
+    private void despachar(Lote lote, String destino, Duration tiempoTransito, String responsable) {
+        Instant ahora = reloj.ahora();
+        PuntoAlmacenamiento origen = almacenActualDe(lote);
+        List<Lote> candidatos = loteRepository.lotesEnAlmacen(origen.id(), lote.tipoCultivo());
+        ReglaDeNegocioVioladaException.validar(SeleccionLotes.respetaPrioridadDeDespacho(lote, candidatos, ahora), "R16",
+                "Hay otro lote del mismo cultivo que vence antes ("
+                        + SeleccionLotes.ordenDeDespacho(candidatos, ahora).get(0).codigo() + ") y debe salir primero.");
+        lote.despachar(destino, tiempoTransito, responsable, ahora);
+        origen.liberarLote(lote.id());
+        almacenRepository.registrar(origen);
+        persistirYPublicar(lote);
+    }
+
+    private PuntoAlmacenamiento almacenActualDe(Lote lote) {
+        AlmacenId actual = lote.almacenActual().orElseThrow(() -> new ReglaDeNegocioVioladaException("R9",
+                "El lote " + lote.codigo() + " no esta en ningun almacenamiento."));
+        return cargarAlmacen(actual);
+    }
+
+    private PuntoAlmacenamiento cargarAlmacen(AlmacenId id) {
+        return almacenRepository.obtenerAlmacen(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Punto de almacenamiento", id));
     }
 }
