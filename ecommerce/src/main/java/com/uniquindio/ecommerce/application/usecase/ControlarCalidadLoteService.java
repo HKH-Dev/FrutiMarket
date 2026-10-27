@@ -10,7 +10,11 @@ import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.Calidad;
 
 import java.math.BigDecimal;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Service
+@Transactional
 public class ControlarCalidadLoteService extends ServicioDeAplicacion implements ControlarCalidadLoteUseCase {
 
     public ControlarCalidadLoteService(LoteRepository loteRepository, Reloj reloj, PublicadorEventos publicadorEventos) {

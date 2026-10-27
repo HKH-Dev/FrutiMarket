@@ -104,8 +104,60 @@ public class Lote {
         this.estado = EstadoLote.REGISTRADO;
     }
 
+    /** Reconstruye un lote ya existente (p. ej. leido de la base de datos), sin repetir validaciones de creacion. */
+    private Lote(Datos d) {
+        this.id = d.id();
+        this.codigo = d.codigo();
+        this.producto = d.producto();
+        this.nombreProducto = d.nombreProducto();
+        this.linea = d.linea();
+        this.tipoCultivo = d.tipoCultivo();
+        this.conservacion = d.conservacion();
+        this.temporada = d.temporada();
+        this.campesinoResponsable = d.campesinoResponsable();
+        this.fichaTrazabilidad = d.fichaTrazabilidad();
+        this.fechaCosecha = d.fechaCosecha();
+        this.fechaLimiteConsumo = d.fechaLimiteConsumo();
+        this.cantidadInicial = d.cantidadInicial();
+        this.fechaRegistro = d.fechaRegistro();
+        this.reservas = new ArrayList<>(d.reservas());
+        this.custodia = new ArrayList<>(d.custodia());
+        this.eventos = new ArrayList<>();
+        this.calidadDeclarada = d.calidadDeclarada();
+        this.calidadVerificada = d.calidadVerificada();
+        this.cantidadDisponible = d.cantidadDisponible();
+        this.precioFinca = d.precioFinca();
+        this.merma = d.merma();
+        this.mermaAplicada = d.mermaAplicada();
+        this.estado = d.estado();
+        this.almacenActual = d.almacenActual();
+        this.cadenaFrioRota = d.cadenaFrioRota();
+        this.estadoPrevioARevision = d.estadoPrevioARevision();
+        this.motivoRevision = d.motivoRevision();
+        this.detalleRevision = d.detalleRevision();
+        this.fechaPublicacion = d.fechaPublicacion();
+        this.version = d.version();
+    }
+
     public static Builder builder() {
         return new Builder();
+    }
+
+    /** Solo para la capa de persistencia: devuelve el lote tal como se guardo. */
+    public static Lote reconstituir(Datos datos) {
+        return new Lote(datos);
+    }
+
+    /** Estado completo de un lote guardado. Los opcionales pueden venir en {@code null}. */
+    public record Datos(LoteId id, String codigo, ProductoId producto, String nombreProducto, Producto.Linea linea,
+                        TipoCultivo tipoCultivo, Conservacion conservacion, TemporadaCosecha temporada,
+                        CampesinoId campesinoResponsable, FichaTrazabilidad fichaTrazabilidad, LocalDate fechaCosecha,
+                        LocalDate fechaLimiteConsumo, Cantidad cantidadInicial, Instant fechaRegistro,
+                        List<ReservaLote> reservas, List<RegistroCustodia> custodia, Calidad calidadDeclarada,
+                        Calidad calidadVerificada, Cantidad cantidadDisponible, PrecioFinca precioFinca, Merma merma,
+                        boolean mermaAplicada, EstadoLote estado, AlmacenId almacenActual, boolean cadenaFrioRota,
+                        EstadoLote estadoPrevioARevision, MotivoRevision motivoRevision, String detalleRevision,
+                        Instant fechaPublicacion, long version) {
     }
 
     // =====================================================================
@@ -517,6 +569,7 @@ public class Lote {
     public Producto.Linea linea() { return linea; }
     public TipoCultivo tipoCultivo() { return tipoCultivo; }
     public Conservacion conservacion() { return conservacion; }
+    public TemporadaCosecha temporada() { return temporada; }
     public CampesinoId campesinoResponsable() { return campesinoResponsable; }
     public FichaTrazabilidad fichaTrazabilidad() { return fichaTrazabilidad; }
     public Calidad calidadDeclarada() { return calidadDeclarada; }
@@ -527,9 +580,11 @@ public class Lote {
     public Cantidad cantidadDisponible() { return cantidadDisponible; }
     public PrecioFinca precioFinca() { return precioFinca; }
     public Merma merma() { return merma; }
+    public boolean mermaAplicada() { return mermaAplicada; }
     public EstadoLote estado() { return estado; }
     public Optional<AlmacenId> almacenActual() { return Optional.ofNullable(almacenActual); }
     public boolean cadenaFrioRota() { return cadenaFrioRota; }
+    public Optional<EstadoLote> estadoPrevioARevision() { return Optional.ofNullable(estadoPrevioARevision); }
     public Optional<MotivoRevision> motivoRevision() { return Optional.ofNullable(motivoRevision); }
     public Optional<String> detalleRevision() { return Optional.ofNullable(detalleRevision); }
     public List<ReservaLote> reservas() { return List.copyOf(reservas); }

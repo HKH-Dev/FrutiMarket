@@ -30,6 +30,11 @@ public final class ReservaLote {
         return new ReservaLote(pedido, cantidad, momento);
     }
 
+    /** Solo para la capa de persistencia. */
+    public static ReservaLote reconstituir(PedidoId pedido, Cantidad cantidad, Instant momento) {
+        return crear(pedido, cantidad, momento);
+    }
+
     public PedidoId pedido() { return pedido; }
     public Cantidad cantidad() { return cantidad; }
     public Instant momento() { return momento; }

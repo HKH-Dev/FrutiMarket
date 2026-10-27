@@ -13,12 +13,16 @@ import com.uniquindio.ecommerce.domain.repository.LoteRepository;
 import com.uniquindio.ecommerce.domain.repository.ProductoRepository;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.FichaTrazabilidad;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * <b>Registrar lote</b>. Aqui solo se resuelve lo que exige mirar otros agregados: que el
  * campesino este autorizado (regla 1), que el producto exista y que el codigo no se repita.
  * Las reglas del propio lote las valida su {@code Builder}.
  */
+@Service
+@Transactional
 public class RegistrarLoteService extends ServicioDeAplicacion implements RegistrarLoteUseCase {
 
     private final CampesinoRepository campesinoRepository;

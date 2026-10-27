@@ -10,7 +10,11 @@ import com.uniquindio.ecommerce.domain.valueobject.catalogo.Merma;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.PedidoId;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Service
+@Transactional
 public class GestionarDisponibilidadService extends ServicioDeAplicacion implements GestionarDisponibilidadUseCase {
 
     public GestionarDisponibilidadService(LoteRepository loteRepository, Reloj reloj, PublicadorEventos publicadorEventos) {

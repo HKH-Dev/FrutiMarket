@@ -5,6 +5,7 @@ import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import java.time.LocalDate;
 import java.time.MonthDay;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Value Object: periodo del ano en que un producto se cosecha. Es un patron anual,
@@ -43,6 +44,14 @@ public final class TemporadaCosecha {
             return !dia.isBefore(inicio) || !dia.isAfter(fin);
         }
         return !dia.isBefore(inicio) && !dia.isAfter(fin);
+    }
+
+    public Optional<MonthDay> inicio() {
+        return Optional.ofNullable(inicio);
+    }
+
+    public Optional<MonthDay> fin() {
+        return Optional.ofNullable(fin);
     }
 
     public boolean esTodoElAnio() {

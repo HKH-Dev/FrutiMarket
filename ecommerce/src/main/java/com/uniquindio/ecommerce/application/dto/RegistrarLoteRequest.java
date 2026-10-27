@@ -10,6 +10,15 @@ import com.uniquindio.ecommerce.domain.valueobject.identidad.ProductoId;
 import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.Calidad;
 import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.TecnicaProduccion;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Positive;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -34,19 +43,19 @@ import java.util.UUID;
  * @param porcentajeMerma     perdida esperada (0 a 40 %); null = sin merma.
  */
 public record RegistrarLoteRequest(
-        String codigo,
-        UUID productoId,
-        UUID campesinoId,
-        UUID fincaOrigenId,
-        TecnicaProduccion tecnicaProduccion,
-        Calidad.Categoria categoriaCalidad,
-        int porcentajeDefectos,
+        @NotBlank String codigo,
+        @NotNull UUID productoId,
+        @NotNull UUID campesinoId,
+        @NotNull UUID fincaOrigenId,
+        @NotNull TecnicaProduccion tecnicaProduccion,
+        @NotNull Calidad.Categoria categoriaCalidad,
+        @Min(0) @Max(100) int porcentajeDefectos,
         boolean certificadoOrganico,
-        BigDecimal cantidad,
-        UnidadMedida unidadMedida,
-        BigDecimal precioPorUnidad,
-        LocalDate fechaCosecha,
-        BigDecimal porcentajeMerma) {
+        @NotNull @Positive BigDecimal cantidad,
+        @NotNull UnidadMedida unidadMedida,
+        @NotNull @Positive BigDecimal precioPorUnidad,
+        @NotNull @PastOrPresent LocalDate fechaCosecha,
+        @DecimalMin("0") @DecimalMax("40") BigDecimal porcentajeMerma) {
 
     public RegistrarLoteCommand aComando() {
         return new RegistrarLoteCommand(

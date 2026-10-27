@@ -34,6 +34,11 @@ public class DetalleCompra {
         return new DetalleCompra(UUID.randomUUID(), lote, cantidad, precioUnitario);
     }
 
+    /** Solo para la capa de persistencia: conserva el id original. */
+    public static DetalleCompra reconstituir(UUID id, LoteId lote, Cantidad cantidad, PrecioFinca precioUnitario) {
+        return new DetalleCompra(id, lote, cantidad, precioUnitario);
+    }
+
     public BigDecimal subtotal() {
         return precioUnitario.totalPara(cantidad);
     }
