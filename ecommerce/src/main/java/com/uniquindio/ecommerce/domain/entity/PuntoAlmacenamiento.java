@@ -53,7 +53,7 @@ public class PuntoAlmacenamiento {
         this.cultivosHabilitados = builder.cultivosHabilitados;
         this.conservacionesDisponibles = builder.conservacionesDisponibles;
         this.capacidadLotes = builder.capacidadLotes;
-        this.lotesAlmacenados = new HashSet<>();
+        this.lotesAlmacenados = new HashSet<>(builder.lotesAlmacenados);
     }
 
     public static Builder builder() {
@@ -136,6 +136,7 @@ public class PuntoAlmacenamiento {
         private Set<TipoCultivo> cultivosHabilitados = EnumSet.noneOf(TipoCultivo.class);
         private Set<Conservacion> conservacionesDisponibles = EnumSet.of(Conservacion.AMBIENTE);
         private int capacidadLotes;
+        private Set<LoteId> lotesAlmacenados = new HashSet<>();
 
         private Builder() {
         }
@@ -148,6 +149,8 @@ public class PuntoAlmacenamiento {
         public Builder cultivosHabilitados(Set<TipoCultivo> cultivos) { this.cultivosHabilitados = cultivos; return this; }
         public Builder conservacionesDisponibles(Set<Conservacion> conservaciones) { this.conservacionesDisponibles = conservaciones; return this; }
         public Builder capacidadLotes(int capacidad) { this.capacidadLotes = capacidad; return this; }
+        /** Solo para la capa de persistencia: lotes que ya estaban guardados. */
+        public Builder lotesAlmacenados(Set<LoteId> lotes) { this.lotesAlmacenados = lotes; return this; }
 
         public PuntoAlmacenamiento build() {
             ReglaDeNegocioVioladaException.validar(id != null && tipo != null, "INV-ALMACEN",
@@ -163,6 +166,8 @@ public class PuntoAlmacenamiento {
             ReglaDeNegocioVioladaException.validar(conservacionesDisponibles != null && !conservacionesDisponibles.isEmpty(),
                     "R9", "El almacenamiento debe ofrecer al menos una conservacion.");
             ReglaDeNegocioVioladaException.validar(municipiosCobertura != null, "R15", "La cobertura no puede ser nula.");
+            ReglaDeNegocioVioladaException.validar(lotesAlmacenados != null && lotesAlmacenados.size() <= capacidadLotes,
+                    "INV-CAPACIDAD", "Los lotes almacenados superan la capacidad.");
             nombre = nombre.trim();
             municipio = municipio.trim();
             Set<String> cobertura = municipiosCobertura.stream().map(PuntoAlmacenamiento::normalizar)

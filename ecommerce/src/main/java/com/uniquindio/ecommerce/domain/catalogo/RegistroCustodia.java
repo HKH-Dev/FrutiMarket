@@ -86,6 +86,13 @@ public final class RegistroCustodia {
         return new RegistroCustodia(tipo, almacen, guia, sitio, responsable.trim(), momento, temperaturaC, nota);
     }
 
+    /** Solo para la capa de persistencia. */
+    public static RegistroCustodia reconstituir(Tipo tipo, AlmacenId almacen, GuiaDespachoId guia, String lugar,
+                                                String responsable, Instant momento, BigDecimal temperaturaC,
+                                                String observacion) {
+        return new RegistroCustodia(tipo, almacen, guia, lugar, responsable, momento, temperaturaC, observacion);
+    }
+
     public boolean esDeLaGuia(GuiaDespachoId otraGuia) {
         return guia != null && guia.equals(otraGuia);
     }

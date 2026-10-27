@@ -43,6 +43,15 @@ public class Compra {
         return new Builder();
     }
 
+    /** Solo para la capa de persistencia: devuelve la compra en el estado en que se guardo. */
+    public static Compra reconstituir(PedidoId id, CompradorId comprador, Instant fecha, EstadoCompra estado,
+                                      List<DetalleCompra> detalles) {
+        Compra compra = builder().id(id).compradorId(comprador).fecha(fecha).build();
+        compra.detalles.addAll(detalles);
+        compra.estado = estado;
+        return compra;
+    }
+
     public void agregarDetalle(DetalleCompra detalle) {
         ReglaDeNegocioVioladaException.validar(detalle != null, "INV-COMPRA-DETALLE", "El detalle es obligatorio.");
         exigirPendiente("agregar detalles a");

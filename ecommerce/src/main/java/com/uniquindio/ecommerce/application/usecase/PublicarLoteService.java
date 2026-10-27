@@ -12,7 +12,11 @@ import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 
 import java.util.Optional;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Service
+@Transactional
 public class PublicarLoteService extends ServicioDeAplicacion implements PublicarLoteUseCase {
 
     private final CampesinoRepository campesinoRepository;

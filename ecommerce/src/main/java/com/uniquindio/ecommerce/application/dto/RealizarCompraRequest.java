@@ -1,5 +1,10 @@
 package com.uniquindio.ecommerce.application.dto;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -12,12 +17,12 @@ import java.util.UUID;
  * @param compradorId quien compra; la compra no existe sin comprador.
  * @param items       lineas de la compra; vacia no se puede confirmar (INV-COMPRA-VACIA).
  */
-public record RealizarCompraRequest(UUID compradorId, List<Item> items) {
+public record RealizarCompraRequest(@NotNull UUID compradorId, @NotEmpty List<@Valid Item> items) {
 
     /**
      * @param loteId   lote del que se compra.
      * @param cantidad cuanto se compra, en la unidad del lote; no puede superar su disponible (regla 3).
      */
-    public record Item(UUID loteId, BigDecimal cantidad) {
+    public record Item(@NotNull UUID loteId, @NotNull @Positive BigDecimal cantidad) {
     }
 }

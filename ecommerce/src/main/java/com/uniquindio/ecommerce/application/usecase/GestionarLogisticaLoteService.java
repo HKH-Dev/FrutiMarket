@@ -19,6 +19,8 @@ import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Logistica del lote. Lo que pertenece al lote (vida util, revision, cadena de frio)
@@ -26,6 +28,8 @@ import java.util.List;
  * lo valida el almacenamiento; aqui solo se coordinan y se aplica el FEFO (regla 16).
  * Al integrarlo con JPA debe ser {@code @Transactional}: se modifican dos agregados.
  */
+@Service
+@Transactional
 public class GestionarLogisticaLoteService extends ServicioDeAplicacion implements GestionarLogisticaLoteUseCase {
 
     private final PuntoAlmacenamientoRepository almacenRepository;

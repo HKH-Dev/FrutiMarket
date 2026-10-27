@@ -20,12 +20,16 @@ import com.uniquindio.ecommerce.domain.valueobject.identidad.CompradorId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 
 import java.time.Instant;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * <b>Realizar compra</b>: por cada item reserva en el lote (regla 3) con el id de la compra
  * como pedido, confirma la salida y agrega el detalle; al final confirma la compra.
  * Al integrarlo con JPA debe ser {@code @Transactional}: si un item falla, todo se deshace.
  */
+@Service
+@Transactional
 public class RealizarCompraService extends ServicioDeAplicacion implements RealizarCompraUseCase {
 
     private final CompraRepository compraRepository;
