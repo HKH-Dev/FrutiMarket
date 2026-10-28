@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,7 +28,7 @@ import java.util.Map;
  *
  * <ul>
  *   <li>Regla de negocio violada: 422, con el codigo de la regla en {@code regla} (p. ej. "R3").</li>
- *   <li>Recurso inexistente: 404.</li>
+ *   <li>Recurso inexistente: 404. Login incorrecto: 401.</li>
  *   <li>Cuerpo invalido: 400, con el detalle por campo en {@code errores}.</li>
  *   <li>JSON ilegible: 400 (con la causa tecnica solo si {@code frutimarket.errores.mostrar-causa=true}); tipos o parametros faltantes: 400 (lo resuelve la clase base).</li>
  * </ul>
@@ -68,6 +69,15 @@ public class ManejadorErrores extends ResponseEntityExceptionHandler {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
                 "El registro entra en conflicto con datos existentes (por ejemplo, un codigo repetido).");
         problema.setTitle("Conflicto de datos");
+        return problema;
+    }
+
+    /** Login con usuario o clave incorrectos. No se dice cual de los dos fallo. */
+    @ExceptionHandler(AuthenticationException.class)
+    public ProblemDetail noAutenticado(AuthenticationException ex) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED,
+                "Usuario o contrasena incorrectos.");
+        problema.setTitle("No autenticado");
         return problema;
     }
 
