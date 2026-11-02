@@ -1,0 +1,64 @@
+.ranking {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ranking li {
+  display: grid;
+  grid-template-columns: 2rem minmax(8rem, 12rem) 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.ranking li:last-child {
+  border-bottom: 0;
+}
+
+.posicion {
+  font-weight: 700;
+  color: var(--verde);
+  font-variant-numeric: tabular-nums;
+}
+
+.nombre {
+  font-weight: 500;
+}
+
+.barra {
+  height: 0.6rem;
+  background: var(--borde);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.barra span {
+  display: block;
+  height: 100%;
+  background: var(--verde);
+  border-radius: 999px;
+}
+
+.valor {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ranking li.vacio {
+  display: block;
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+@media (max-width: 560px) {
+  .ranking li {
+    grid-template-columns: 2rem 1fr auto;
+  }
+
+  .barra,
+  .compras {
+    display: none;
+  }
+}

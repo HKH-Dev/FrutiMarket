@@ -1,0 +1,73 @@
+.volver {
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+h1 code {
+  font-size: 0.6em;
+  vertical-align: middle;
+}
+
+.datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+dl {
+  margin: 0;
+}
+
+dt {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--texto-suave);
+}
+
+dd {
+  margin: 0.15rem 0 0;
+}
+
+.puntaje {
+  margin-left: 0.5rem;
+}
+
+.cifra {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--verde);
+}
+
+.linea-tiempo {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1.25rem;
+  border-left: 2px solid var(--borde);
+}
+
+.linea-tiempo li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0 0 1.25rem 0.5rem;
+}
+
+.linea-tiempo li::before {
+  content: '';
+  position: absolute;
+  left: -1.72rem;
+  top: 0.3rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--verde);
+  box-shadow: 0 0 0 3px var(--fondo);
+}
+
+.momento {
+  font-size: 0.8125rem;
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}

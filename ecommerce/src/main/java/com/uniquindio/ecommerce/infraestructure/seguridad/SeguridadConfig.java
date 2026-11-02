@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -46,6 +47,7 @@ public class SeguridadConfig {
     @Bean
     public SecurityFilterChain cadenaDeSeguridad(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults()) // usa el CorsConfigurationSource de CorsConfig
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // La consola H2 se muestra dentro de un iframe del mismo sitio.

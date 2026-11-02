@@ -1,0 +1,27 @@
+<section class="tarjeta formulario">
+  <h1>Iniciar sesión</h1>
+  <form [formGroup]="formulario" (ngSubmit)="entrar()" novalidate>
+    <label for="usuario">Usuario</label>
+    <input id="usuario" formControlName="usuario" autocomplete="username"
+           [attr.aria-invalid]="formulario.controls.usuario.invalid && formulario.controls.usuario.touched" />
+    @if (formulario.controls.usuario.invalid && formulario.controls.usuario.touched) {
+      <span class="campo-error">Escriba su usuario.</span>
+    }
+
+    <label for="clave">Contraseña</label>
+    <input id="clave" type="password" formControlName="clave" autocomplete="current-password"
+           [attr.aria-invalid]="formulario.controls.clave.invalid && formulario.controls.clave.touched" />
+    @if (formulario.controls.clave.invalid && formulario.controls.clave.touched) {
+      <span class="campo-error">Escriba su contraseña.</span>
+    }
+
+    @if (error()) {
+      <p class="aviso aviso-error" role="alert">{{ error() }}</p>
+    }
+
+    <button type="submit" class="boton" [disabled]="enviando()">
+      {{ enviando() ? 'Entrando…' : 'Entrar' }}
+    </button>
+  </form>
+  <p class="sutil ayuda">Usuarios de prueba: <code>admin</code>, <code>campesino</code>, <code>comprador</code> (claves en su <code>.env</code>).</p>
+</section>

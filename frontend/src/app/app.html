@@ -1,0 +1,25 @@
+<header class="barra">
+  <div class="barra-contenido">
+    <a routerLink="/" class="marca" aria-label="FrutiMarket, inicio">
+      <span class="marca-icono" aria-hidden="true">●</span> FrutiMarket
+    </a>
+    <nav aria-label="Principal">
+      <a routerLink="/" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">Catálogo</a>
+      @if (auth.esAdmin()) {
+        <a routerLink="/reportes" routerLinkActive="activo">Reportes</a>
+      }
+    </nav>
+    <div class="sesion">
+      @if (auth.autenticado()) {
+        <span class="sutil">{{ auth.usuario() }} · {{ auth.roles().join(', ') }}</span>
+        <button type="button" class="boton-texto" (click)="salir()">Salir</button>
+      } @else {
+        <a routerLink="/login" class="boton boton-pequeno">Iniciar sesión</a>
+      }
+    </div>
+  </div>
+</header>
+
+<main class="contenido">
+  <router-outlet />
+</main>

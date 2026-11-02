@@ -9,6 +9,27 @@ persistencia JPA (H2 o MariaDB) y API REST documentada con Swagger.
 
 Ahora usamos **H2**; En ambos casos el usuario es `ecommerce_app`
 
+## Cómo correrlo
+
+| | Linux | Windows (PowerShell) |
+|---|---|---|
+| Backend con H2 | `cd ecommerce` y `./gradlew bootRun` | `cd ecommerce` y `.\gradlew.bat bootRun` |
+| Backend con MariaDB | `./gradlew bootRun --args='--spring.profiles.active=mariadb'` | `.\gradlew.bat bootRun --args="--spring.profiles.active=mariadb"` |
+| Frontend | `cd frontend`, `npm install` y `npm start` | lo mismo |
+| Pruebas backend | `./gradlew test` | `.\gradlew.bat test` |
+| Pruebas frontend | `npm test -- --watch=false` | lo mismo |
+
+- Frontend: http://localhost:4200 (Angular 21; las llamadas a `/api` van al backend por el proxy)
+- Instalación paso a paso: [docs/GUIA-LINUX.md](docs/GUIA-LINUX.md) · [docs/GUIA-WINDOWS.md](docs/GUIA-WINDOWS.md)
+
+## MariaDB y Flyway
+
+Con MariaDB el esquema lo versiona **Flyway** (`ecommerce/src/main/resources/db/`), no Hibernate:
+`db/migration` tiene la estructura y `db/datos-ejemplo` el catálogo inicial. Hibernate solo valida
+(`ddl-auto=validate`). **Un script ya aplicado no se edita:** cada cambio de tablas va en un archivo
+nuevo `V2__descripcion.sql`, `V3__...`, en el mismo commit que el cambio de la entidad. Requiere
+MariaDB 10.7 o superior.
+
 ## Seguridad (JWT)
 
 La ruta `GET /api/reportes/productos-mas-vendidos` solo la puede usar un **ADMIN**; el resto de la API

@@ -1,0 +1,75 @@
+.barra {
+  background: var(--verde);
+  color: #fff;
+}
+
+.barra-contenido {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  flex-wrap: wrap;
+}
+
+.marca {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: #fff;
+  text-decoration: none;
+}
+
+.marca-icono {
+  color: var(--mango);
+}
+
+nav {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+}
+
+nav a {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  padding: 0.25rem 0;
+  border-bottom: 2px solid transparent;
+}
+
+nav a:hover,
+nav a.activo {
+  color: #fff;
+  border-bottom-color: var(--mango);
+}
+
+.sesion {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sesion .sutil {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.875rem;
+}
+
+.boton-texto {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: var(--radio);
+  color: #fff;
+  padding: 0.3rem 0.75rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.boton-texto:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.contenido {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}

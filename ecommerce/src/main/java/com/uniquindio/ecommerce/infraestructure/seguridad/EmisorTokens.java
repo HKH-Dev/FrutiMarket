@@ -26,9 +26,12 @@ public class EmisorTokens {
     }
 
     public TokenEmitido emitir(Authentication autenticado) {
+        // Solo los roles (ROLE_*). Spring Security 7 agrega otras autoridades internas, como
+        // FACTOR_PASSWORD (indica que se entro con clave), que no deben viajar en el token.
         List<String> roles = autenticado.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .map(autoridad -> autoridad.replaceFirst("^ROLE_", ""))
+                .filter(autoridad -> autoridad.startsWith("ROLE_"))
+                .map(autoridad -> autoridad.substring("ROLE_".length()))
                 .toList();
         return emitir(autenticado.getName(), roles);
     }

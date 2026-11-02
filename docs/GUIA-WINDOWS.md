@@ -120,6 +120,13 @@ SELECT * FROM productos;
 Cuando el equipo pase a MariaDB, los datos dejarán de borrarse al apagar. El usuario sigue siendo el
 mismo `ecommerce_app` del `.env`; solo hay que crear la base y elegir el puerto.
 
+Las tablas las crea **Flyway** con los scripts de `ecommerce/src/main/resources/db/` (no Hibernate).
+La primera vez verá en la consola `Successfully applied 2 migrations`; las siguientes,
+`Schema ... is up to date`. Necesita **MariaDB 10.7 o superior** (se recomienda 11).
+
+> Si ya tenía una base `ecommercedb` creada antes por Hibernate, bórrela y créela de nuevo: Flyway no
+> trabaja sobre tablas que no creó él (`Found non-empty schema(s)`).
+
 ### Opción A: Docker Desktop
 
 ```powershell
@@ -134,16 +141,17 @@ La primera vez el contenedor crea la base y el usuario `ecommerce_app` con su `D
 Si antes creó un contenedor `mariadb-ecommerce` a mano, bórrelo primero con
 `docker rm -f mariadb-ecommerce`.
 
-### Opción B: MariaDB instalado o XAMPP
+### Opción B: MariaDB instalado
 
 Instalador de MariaDB (`winget install --id MariaDB.Server -e`; anote la clave de root que le pide).
 Desde `ecommerce`, con `su_clave` igual a su `DB_PASSWORD`:
 ```powershell
 & "C:\Program Files\MariaDB 11.8\bin\mariadb.exe" -u root -p -e "SET @clave='su_clave'; SOURCE db/crear-usuario.sql;"
 ```
-Ajuste la carpeta a su versión (`dir "C:\Program Files\"`). Con **XAMPP** use
-`& "C:\xampp\mysql\bin\mysql.exe"` en su lugar (root sin clave: presione Enter).
-En `.env` ponga `DB_PORT=3306`.
+Ajuste la carpeta a su versión (`dir "C:\Program Files\"`). En `.env` ponga `DB_PORT=3306`.
+
+> **XAMPP no sirve:** trae MariaDB 10.4, que no tiene el tipo `uuid` que usan las tablas.
+> Use el instalador oficial de MariaDB o Docker.
 
 ### Ejecutar con MariaDB
 ```powershell
@@ -156,3 +164,25 @@ En IntelliJ: **Active profiles** = `mariadb`.
 | `Access denied for user 'ecommerce_app'` | La contraseña de `.env` no coincide con la de la base. |
 | `Communications link failure` | MariaDB no está encendido o el `DB_PORT` no es el correcto (3307 Docker, 3306 instalado). |
 | `error during connect` en Docker | Docker Desktop no está abierto. |
+| `Found non-empty schema(s) ... without schema history table` | La base tenía tablas de antes de Flyway. Bórrela y créela de nuevo (con Docker: `docker compose down -v` y `docker compose up -d`). |
+| `Migration checksum mismatch` | Alguien editó un script de `db/migration` ya aplicado. Los scripts aplicados no se editan: los cambios van en un `V2__...sql` nuevo. |
+| `Schema-validation: missing column` | Se cambió una entidad JPA sin escribir su migración. |
+
+---
+
+## Frontend (Angular)
+
+El frontend está en la carpeta `frontend` (Angular 21). Necesita **Node 22.12 o superior con npm 11**:
+```powershell
+winget install --id OpenJS.NodeJS.LTS -e
+```
+Cierre y abra PowerShell. Con el backend corriendo en el puerto 8080, desde `frontend`:
+```powershell
+npm install
+npm start
+```
+Abra http://localhost:4200. Las llamadas a `/api` pasan al backend por el proxy de Angular
+(`proxy.conf.json`). Pruebas: `npm test -- --watch=false`.
+
+> Si `npm install` falla con `Cannot read properties of null (reading 'edgesOut')`, es un error de
+> npm 10: actualice a npm 11 (`npm install -g npm@11`).
