@@ -1,0 +1,30 @@
+<section class="encabezado">
+  <h1>Productos más vendidos</h1>
+  <p class="sutil">Cantidad vendida en compras completadas. Solo lo ve el administrador.</p>
+</section>
+
+@if (error()) {
+  <p class="aviso aviso-error" role="alert">{{ error() }}</p>
+}
+
+<section class="tarjeta">
+  @if (cargando()) {
+    <p class="sutil">Cargando ranking…</p>
+  } @else {
+    <ol class="ranking">
+      @for (producto of ranking(); track producto.productoId) {
+        <li>
+          <span class="posicion">{{ producto.posicion }}</span>
+          <span class="nombre">{{ producto.nombre }}</span>
+          <span class="barra" aria-hidden="true">
+            <span [style.width.%]="(producto.cantidadVendida / maximo()) * 100"></span>
+          </span>
+          <span class="valor">{{ producto.cantidadVendida | number: '1.0-3' }} {{ producto.unidad }}</span>
+          <span class="sutil compras">{{ producto.numeroCompras }} {{ producto.numeroCompras === 1 ? 'compra' : 'compras' }}</span>
+        </li>
+      } @empty {
+        <li class="sutil vacio">Todavía no hay compras completadas.</li>
+      }
+    </ol>
+  }
+</section>

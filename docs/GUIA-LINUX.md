@@ -116,6 +116,13 @@ SELECT * FROM productos;
 Cuando el equipo pase a MariaDB, los datos dejarán de borrarse al apagar. El usuario sigue siendo el
 mismo `ecommerce_app` del `.env`; solo hay que crear la base y elegir el puerto.
 
+Las tablas las crea **Flyway** con los scripts de `ecommerce/src/main/resources/db/` (no Hibernate).
+La primera vez verá en la consola `Successfully applied 2 migrations`; las siguientes,
+`Schema ... is up to date`. Necesita **MariaDB 10.7 o superior** (se recomienda 11).
+
+> Si ya tenía una base `ecommercedb` creada antes por Hibernate, bórrela y créela de nuevo: Flyway no
+> trabaja sobre tablas que no creó él (`Found non-empty schema(s)`).
+
 ### Opción A: Docker
 
 ```bash
@@ -154,3 +161,30 @@ En IntelliJ: **Active profiles** = `mariadb`.
 |---|---|
 | `Access denied for user 'ecommerce_app'` | La contraseña de `.env` no coincide con la de la base. |
 | `Communications link failure` | MariaDB no está encendido o el `DB_PORT` no es el correcto (3307 Docker, 3306 instalado). |
+| `Found non-empty schema(s) ... without schema history table` | La base tenía tablas de antes de Flyway. Bórrela y créela de nuevo (con Docker: `docker compose down -v` y `docker compose up -d`). |
+| `Migration checksum mismatch` | Alguien editó un script de `db/migration` ya aplicado. Los scripts aplicados no se editan: los cambios van en un `V2__...sql` nuevo. |
+| `Schema-validation: missing column` | Se cambió una entidad JPA sin escribir su migración. |
+
+---
+
+## Frontend (Angular)
+
+El frontend está en la carpeta `frontend/` (Angular 21). Necesita **Node 22.12 o superior con npm 11**.
+El paquete `nodejs` de Ubuntu no trae npm; instálelo con nvm (sin sudo):
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+```
+Cierre y abra la terminal:
+```bash
+nvm install 24
+```
+Con el backend corriendo en el puerto 8080, desde `frontend/`:
+```bash
+npm install
+npm start
+```
+Abra http://localhost:4200. Las llamadas a `/api` pasan al backend por el proxy de Angular
+(`proxy.conf.json`). Pruebas: `npm test -- --watch=false`.
+
+> Si `npm install` falla con `Cannot read properties of null (reading 'edgesOut')`, es un error de
+> npm 10: actualice a npm 11 (`npm install -g npm@11`).

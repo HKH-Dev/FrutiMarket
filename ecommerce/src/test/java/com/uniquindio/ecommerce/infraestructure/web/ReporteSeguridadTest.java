@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -85,7 +86,7 @@ class ReporteSeguridadTest {
         String respuesta = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"usuario\":\"admin\",\"clave\":\"admin123\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.roles[0]").value("ADMIN"))
+                .andExpect(jsonPath("$.roles").value(contains("ADMIN"))) // exactamente ["ADMIN"]
                 .andReturn().getResponse().getContentAsString();
         String token = JsonPath.read(respuesta, "$.token");
 

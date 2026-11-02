@@ -1,0 +1,66 @@
+<a routerLink="/" class="volver">← Volver al catálogo</a>
+
+@if (error()) {
+  <p class="aviso aviso-error" role="alert">{{ error() }}</p>
+} @else if (lote(); as lote) {
+  <section class="encabezado">
+    <h1>{{ lote.producto }} <code>{{ lote.codigo }}</code></h1>
+    <p class="sutil">Técnica {{ lote.tecnicaProduccion }} · cosechado el {{ lote.fechaCosecha | date: 'longDate' }}</p>
+  </section>
+
+  <div class="datos">
+    <section class="tarjeta">
+      <h2>Calidad</h2>
+      <dl>
+        <dt>Declarada por el campesino</dt>
+        <dd>
+          {{ lote.calidadDeclarada.categoria }} · {{ lote.calidadDeclarada.porcentajeDefectos }}% defectos
+          @if (lote.calidadDeclarada.certificadoOrganico) {
+            <span class="etiqueta">Orgánico</span>
+          }
+          <strong class="puntaje">{{ lote.calidadDeclarada.puntaje }} pts</strong>
+        </dd>
+        <dt>Verificada por inspección</dt>
+        <dd>
+          @if (lote.calidadVerificada; as verificada) {
+            {{ verificada.categoria }} · {{ verificada.porcentajeDefectos }}% defectos
+            <strong class="puntaje">{{ verificada.puntaje }} pts</strong>
+          } @else {
+            <span class="sutil">Aún sin inspección</span>
+          }
+        </dd>
+      </dl>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Vida útil</h2>
+      @if (lote.fechaLimiteConsumo) {
+        <p class="cifra">{{ lote.diasVidaUtilRestante }} días</p>
+        <p class="sutil">Consumir antes del {{ lote.fechaLimiteConsumo | date: 'longDate' }}</p>
+      } @else {
+        <p class="cifra">No perecedero</p>
+      }
+    </section>
+  </div>
+
+  <section class="tarjeta">
+    <h2>Cadena de custodia</h2>
+    <ol class="linea-tiempo">
+      @for (paso of lote.custodia; track $index) {
+        <li>
+          <span class="momento">{{ paso.momento | date: 'medium' }}</span>
+          <strong>{{ paso.descripcion }}</strong>
+          <span>{{ paso.lugar }} · {{ paso.responsable }}</span>
+          @if (paso.temperaturaC !== null) {
+            <span class="sutil">{{ paso.temperaturaC }} °C</span>
+          }
+          @if (paso.observacion) {
+            <span class="sutil">{{ paso.observacion }}</span>
+          }
+        </li>
+      }
+    </ol>
+  </section>
+} @else {
+  <p class="sutil">Cargando trazabilidad…</p>
+}

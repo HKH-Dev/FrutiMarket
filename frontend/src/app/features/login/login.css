@@ -1,0 +1,24 @@
+.formulario {
+  max-width: 24rem;
+  margin: 2rem auto;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+label {
+  margin-top: 0.75rem;
+  font-weight: 500;
+}
+
+.boton {
+  margin-top: 1.25rem;
+}
+
+.ayuda {
+  margin-top: 1.25rem;
+  font-size: 0.875rem;
+}
