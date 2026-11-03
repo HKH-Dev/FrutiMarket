@@ -44,6 +44,7 @@ public class EmisorTokens {
                 .subject(usuario)
                 .issuedAt(ahora)
                 .expiresAt(ahora.plus(vigencia))
+                .claim("correo", usuario)
                 .claim(SeguridadConfig.CLAIM_ROLES, roles)
                 .build();
         String token = encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))

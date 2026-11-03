@@ -21,6 +21,6 @@ public record PropiedadesSeguridad(String jwtSecreto, long expiracionMinutos, Li
         usuarios = usuarios == null ? List.of() : List.copyOf(usuarios);
     }
 
-    public record Usuario(String nombre, String clave, Rol rol) {
+    public record Usuario(String correo, String clave, Rol rol) {
     }
 }
