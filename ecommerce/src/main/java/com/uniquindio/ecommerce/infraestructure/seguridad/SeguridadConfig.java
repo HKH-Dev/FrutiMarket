@@ -4,14 +4,10 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -21,7 +17,6 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.SecretKey;
@@ -33,8 +28,10 @@ import java.nio.charset.StandardCharsets;
  *
  * <ul>
  *   <li>Sin sesiones: cada peticion trae su token en {@code Authorization: Bearer ...}.</li>
- *   <li>{@code /api/reportes/**} exige rol ADMIN. Sin token responde 401; con otro rol, 403.</li>
- *   <li>El resto de la API sigue abierta mientras el equipo no implemente el registro de usuarios.</li>
+ *   <li>Rutas por rol (sin token responde 401; con token de otro rol, 403):
+ *       lotes (registrar, publicar, desactivar, reactivar, retirar) solo CAMPESINO;
+ *       compras y reembolsos solo COMPRADOR; {@code /api/reportes/**} solo ADMIN.</li>
+ *   <li>Publicas: registro, login, catalogo y consultas (GET), Swagger y consola H2.</li>
  * </ul>
  */
 @Configuration
@@ -46,6 +43,7 @@ public class SeguridadConfig {
 
     @Bean
     public SecurityFilterChain cadenaDeSeguridad(HttpSecurity http) throws Exception {
+        RespuestasDeSeguridad respuestas = new RespuestasDeSeguridad();
         http
                 .cors(Customizer.withDefaults()) // usa el CorsConfigurationSource de CorsConfig
                 .csrf(csrf -> csrf.disable())
@@ -53,9 +51,19 @@ public class SeguridadConfig {
                 // La consola H2 se muestra dentro de un iframe del mismo sitio.
                 .headers(cabeceras -> cabeceras.frameOptions(marco -> marco.sameOrigin()))
                 .authorizeHttpRequests(rutas -> rutas
+                        // VENDEDOR: solo el campesino publica y administra sus lotes
+                        .requestMatchers(HttpMethod.POST, "/api/lotes", "/api/lotes/*/publicar",
+                                "/api/lotes/*/desactivar", "/api/lotes/*/reactivar").hasRole(Rol.CAMPESINO.name())
+                        .requestMatchers(HttpMethod.DELETE, "/api/lotes/*").hasRole(Rol.CAMPESINO.name())
+                        // COMPRADOR: solo el comprador compra y pide reembolsos
+                        .requestMatchers(HttpMethod.POST, "/api/compras", "/api/compras/*/reembolso")
+                        .hasRole(Rol.COMPRADOR.name())
+                        // ADMIN: reportes
                         .requestMatchers("/api/reportes/**").hasRole(Rol.ADMIN.name())
                         .anyRequest().permitAll())
                 .oauth2ResourceServer(servidor -> servidor
+                        .authenticationEntryPoint(respuestas)
+                        .accessDeniedHandler(respuestas)
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorDeRoles())));
         return http.build();
     }
@@ -83,26 +91,6 @@ public class SeguridadConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    /** Usuarios de demostracion en memoria; las claves se guardan cifradas con BCrypt. */
-    @Bean
-    public UserDetailsService usuarios(PropiedadesSeguridad propiedades, PasswordEncoder encoder) {
-        InMemoryUserDetailsManager usuarios = new InMemoryUserDetailsManager();
-        for (PropiedadesSeguridad.Usuario usuario : propiedades.usuarios()) {
-            usuarios.createUser(User.withUsername(usuario.nombre())
-                    .password(encoder.encode(usuario.clave()))
-                    .roles(usuario.rol().name())
-                    .build());
-        }
-        return usuarios;
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(UserDetailsService usuarios, PasswordEncoder encoder) {
-        DaoAuthenticationProvider proveedor = new DaoAuthenticationProvider(usuarios);
-        proveedor.setPasswordEncoder(encoder);
-        return new ProviderManager(proveedor);
     }
 
     private static SecretKey clave(PropiedadesSeguridad propiedades) {
