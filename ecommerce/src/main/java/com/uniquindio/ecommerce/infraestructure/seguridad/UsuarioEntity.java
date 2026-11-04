@@ -30,15 +30,23 @@ public class UsuarioEntity {
     @Column(nullable = false)
     private boolean activo;
 
+    /**
+     * Campesino o comprador del dominio que representa este usuario (CampesinoId o CompradorId).
+     * Nulo para ADMIN. Viaja en el token, asi el usuario solo puede actuar en nombre propio.
+     */
+    @Column(name = "actor_id")
+    private UUID actorId;
+
     protected UsuarioEntity() {
         // requerido por JPA
     }
 
-    public UsuarioEntity(UUID id, String correo, String claveHash, Rol rol) {
+    public UsuarioEntity(UUID id, String correo, String claveHash, Rol rol, UUID actorId) {
         this.id = id;
         this.correo = correo;
         this.claveHash = claveHash;
         this.rol = rol;
+        this.actorId = actorId;
         this.activo = true;
     }
 
@@ -47,4 +55,5 @@ public class UsuarioEntity {
     public String getClaveHash() { return claveHash; }
     public Rol getRol() { return rol; }
     public boolean isActivo() { return activo; }
+    public UUID getActorId() { return actorId; }
 }

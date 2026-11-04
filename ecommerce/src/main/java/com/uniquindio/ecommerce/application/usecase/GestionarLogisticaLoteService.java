@@ -7,7 +7,6 @@ import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.entity.Comprador;
 import com.uniquindio.ecommerce.domain.entity.PuntoAlmacenamiento;
 import com.uniquindio.ecommerce.domain.exception.RecursoNoEncontradoException;
-import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import com.uniquindio.ecommerce.domain.repository.CompradorRepository;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
 import com.uniquindio.ecommerce.domain.repository.PuntoAlmacenamientoRepository;
@@ -57,8 +56,7 @@ public class GestionarLogisticaLoteService extends ServicioDeAplicacion implemen
     public void despacharAAlmacen(LoteId loteId, AlmacenId destinoId, Duration tiempoTransito, String responsable) {
         Lote lote = cargar(loteId);
         PuntoAlmacenamiento destino = cargarAlmacen(destinoId);
-        ReglaDeNegocioVioladaException.validar(destino.puedeRecibir(lote.tipoCultivo(), lote.conservacion()), "R13",
-                destino.nombre() + " no puede recibir este lote (cultivo, conservacion o capacidad).");
+        destino.exigirQuePuedeRecibir(lote.tipoCultivo(), lote.conservacion());
         despachar(lote, destino.nombre(), tiempoTransito, responsable);
     }
 
@@ -68,8 +66,7 @@ public class GestionarLogisticaLoteService extends ServicioDeAplicacion implemen
         Comprador comprador = compradorRepository.obtenerComprador(compradorId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Comprador", compradorId));
         PuntoAlmacenamiento origen = almacenActualDe(lote);
-        ReglaDeNegocioVioladaException.validar(origen.cubre(comprador.getMunicipio()), "R15",
-                origen.nombre() + " no entrega en " + comprador.getMunicipio() + ".");
+        origen.exigirCobertura(comprador.getMunicipio());
         despachar(lote, "Comprador " + comprador.getNombre(), tiempoTransito, responsable);
     }
 
@@ -82,9 +79,7 @@ public class GestionarLogisticaLoteService extends ServicioDeAplicacion implemen
         Instant ahora = reloj.ahora();
         PuntoAlmacenamiento origen = almacenActualDe(lote);
         List<Lote> candidatos = loteRepository.lotesEnAlmacen(origen.id(), lote.tipoCultivo());
-        ReglaDeNegocioVioladaException.validar(SeleccionLotes.respetaPrioridadDeDespacho(lote, candidatos, ahora), "R16",
-                "Hay otro lote del mismo cultivo que vence antes ("
-                        + SeleccionLotes.ordenDeDespacho(candidatos, ahora).get(0).codigo() + ") y debe salir primero.");
+        SeleccionLotes.exigirPrioridadDeDespacho(lote, candidatos, ahora);
         lote.despachar(destino, tiempoTransito, responsable, ahora);
         origen.liberarLote(lote.id());
         almacenRepository.registrar(origen);
@@ -92,9 +87,7 @@ public class GestionarLogisticaLoteService extends ServicioDeAplicacion implemen
     }
 
     private PuntoAlmacenamiento almacenActualDe(Lote lote) {
-        AlmacenId actual = lote.almacenActual().orElseThrow(() -> new ReglaDeNegocioVioladaException("R9",
-                "El lote " + lote.codigo() + " no esta en ningun almacenamiento."));
-        return cargarAlmacen(actual);
+        return cargarAlmacen(lote.exigirAlmacenActual());
     }
 
     private PuntoAlmacenamiento cargarAlmacen(AlmacenId id) {

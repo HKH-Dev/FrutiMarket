@@ -1,5 +1,6 @@
 package com.uniquindio.ecommerce.application.usecase;
 
+import com.uniquindio.ecommerce.domain.service.PoliticaCodigoLote;
 import com.uniquindio.ecommerce.application.port.in.RegistrarLoteUseCase;
 import com.uniquindio.ecommerce.application.port.out.PublicadorEventos;
 import com.uniquindio.ecommerce.application.port.out.Reloj;
@@ -7,7 +8,6 @@ import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.catalogo.Producto;
 import com.uniquindio.ecommerce.domain.entity.Campesino;
 import com.uniquindio.ecommerce.domain.exception.RecursoNoEncontradoException;
-import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import com.uniquindio.ecommerce.domain.repository.CampesinoRepository;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
 import com.uniquindio.ecommerce.domain.repository.ProductoRepository;
@@ -39,10 +39,8 @@ public class RegistrarLoteService extends ServicioDeAplicacion implements Regist
     public LoteId registrar(RegistrarLoteCommand comando) {
         Campesino campesino = campesinoRepository.obtenerCampesino(comando.campesino())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Campesino", comando.campesino()));
-        ReglaDeNegocioVioladaException.validar(campesino.estaAutorizadoParaPublicar(), "R1",
-                "El campesino " + campesino.getNombre() + " no esta autorizado para publicar en la plataforma.");
-        ReglaDeNegocioVioladaException.validar(comando.codigo() == null || !loteRepository.existeCodigo(comando.codigo().trim()),
-                "INV-CODIGO", "Ya existe un lote con el codigo '" + comando.codigo() + "'.");
+        campesino.exigirAutorizacionParaPublicar();
+        PoliticaCodigoLote.exigirCodigoLibre(comando.codigo(), loteRepository);
         Producto producto = productoRepository.obtenerProducto(comando.producto())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Producto", comando.producto()));
 

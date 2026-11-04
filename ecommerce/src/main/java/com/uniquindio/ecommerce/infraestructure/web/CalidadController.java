@@ -1,7 +1,11 @@
 package com.uniquindio.ecommerce.infraestructure.web;
 
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.Parameter;
+import com.uniquindio.ecommerce.infraestructure.seguridad.UsuarioActual;
 import com.uniquindio.ecommerce.application.port.in.ControlarCalidadLoteUseCase;
-import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 import com.uniquindio.ecommerce.infraestructure.web.dto.LoteRequests.CorregirCalidadRequest;
 import com.uniquindio.ecommerce.infraestructure.web.dto.LoteRequests.IncidenciaRequest;
@@ -25,7 +29,8 @@ import java.util.UUID;
 /** Controles de calidad y condiciones (reglas 11 y 18). */
 @RestController
 @RequestMapping("/api/lotes/{id}")
-@Tag(name = "Calidad", description = "Inspecciones, temperatura, incidencias y revision")
+@Tag(name = "Calidad", description = "Inspecciones, temperatura, incidencias y revision (ADMIN); corregir calidad (CAMPESINO dueno)")
+@SecurityRequirement(name = "bearerAuth")
 public class CalidadController {
 
     private final ControlarCalidadLoteUseCase calidad;
@@ -66,8 +71,9 @@ public class CalidadController {
 
     @PutMapping("/calidad-declarada")
     @Operation(summary = "Corregir la calidad declarada", description = "Regla 18: solo el campesino responsable.")
-    public ResponseEntity<Void> corregir(@PathVariable UUID id, @Valid @RequestBody CorregirCalidadRequest request) {
-        calidad.corregirCalidadDeclarada(LoteId.de(id), CampesinoId.de(request.campesinoId()),
+    public ResponseEntity<Void> corregir(@PathVariable UUID id, @Valid @RequestBody CorregirCalidadRequest request,
+                                         @Parameter(hidden = true) @AuthenticationPrincipal Jwt token) {
+        calidad.corregirCalidadDeclarada(LoteId.de(id), UsuarioActual.campesino(token),
                 request.calidad().aDominio());
         return ResponseEntity.noContent().build();
     }

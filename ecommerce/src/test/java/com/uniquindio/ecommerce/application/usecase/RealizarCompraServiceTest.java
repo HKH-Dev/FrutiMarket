@@ -1,5 +1,6 @@
 package com.uniquindio.ecommerce.application.usecase;
 
+import com.uniquindio.ecommerce.domain.valueobject.identidad.CompradorId;
 import com.uniquindio.ecommerce.application.dto.CompraResponse;
 import com.uniquindio.ecommerce.application.dto.RealizarCompraRequest;
 import com.uniquindio.ecommerce.application.port.out.Reloj;
@@ -15,7 +16,6 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 import static com.uniquindio.ecommerce.LotesDePrueba.AHORA;
 import static com.uniquindio.ecommerce.LotesDePrueba.kilos;
@@ -48,11 +48,10 @@ class RealizarCompraServiceTest {
         // Arrange
         Lote deAna = lotes.almacenar(mangoPublicado("50"));
         Lote deLuis = lotes.almacenar(mangoPublicado("30"));
-        RealizarCompraRequest request = new RealizarCompraRequest(restaurante.getId().valor(),
-                List.of(item(deAna, "5"), item(deLuis, "10")));
+        RealizarCompraRequest request = new RealizarCompraRequest(List.of(item(deAna, "5"), item(deLuis, "10")));
 
         // Act
-        CompraResponse respuesta = servicio.comprar(request);
+        CompraResponse respuesta = servicio.comprar(restaurante.getId(), request);
 
         // Assert
         assertEquals("COMPLETADA", respuesta.estado());
@@ -67,11 +66,11 @@ class RealizarCompraServiceTest {
     void comprarMasDeLoDisponibleNoRegistraLaCompraNiDescuentaElLote() {
         // Arrange
         Lote lote = lotes.almacenar(mangoPublicado("50"));
-        RealizarCompraRequest request = new RealizarCompraRequest(restaurante.getId().valor(), List.of(item(lote, "80")));
+        RealizarCompraRequest request = new RealizarCompraRequest(List.of(item(lote, "80")));
 
         // Act
         ReglaDeNegocioVioladaException excepcion = assertThrows(ReglaDeNegocioVioladaException.class,
-                () -> servicio.comprar(request));
+                () -> servicio.comprar(restaurante.getId(), request));
 
         // Assert
         assertEquals("R3", excepcion.codigoRegla());
@@ -83,10 +82,10 @@ class RealizarCompraServiceTest {
     void unCompradorQueNoExisteNoPuedeComprar() {
         // Arrange
         Lote lote = lotes.almacenar(mangoPublicado("50"));
-        RealizarCompraRequest request = new RealizarCompraRequest(UUID.randomUUID(), List.of(item(lote, "5")));
+        RealizarCompraRequest request = new RealizarCompraRequest(List.of(item(lote, "5")));
 
         // Act & Assert
-        assertThrows(RecursoNoEncontradoException.class, () -> servicio.comprar(request));
+        assertThrows(RecursoNoEncontradoException.class, () -> servicio.comprar(CompradorId.nuevo(), request));
         assertEquals(kilos("50"), lote.cantidadDisponible());
     }
 }

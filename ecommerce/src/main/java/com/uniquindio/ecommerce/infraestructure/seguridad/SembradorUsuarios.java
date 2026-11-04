@@ -19,7 +19,7 @@ class SembradorUsuarios implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         for (PropiedadesSeguridad.Usuario usuario : propiedades.usuarios()) {
-            servicio.crearSiNoExiste(usuario.correo(), usuario.clave(), usuario.rol());
+            servicio.crearSiNoExiste(usuario.correo(), usuario.clave(), usuario.rol(), usuario.actorId());
         }
     }
 }
