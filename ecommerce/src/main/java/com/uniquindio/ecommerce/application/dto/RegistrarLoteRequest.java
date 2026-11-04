@@ -30,7 +30,6 @@ import java.util.UUID;
  *
  * @param codigo              codigo con el que el campesino reconoce su lote (unico).
  * @param productoId          producto del catalogo (mango tommy, mora, mermelada de mora...).
- * @param campesinoId         campesino que vende (regla 1). En produccion sale del usuario autenticado.
  * @param fincaOrigenId       finca donde se cosecho; inicia la trazabilidad (regla 8).
  * @param tecnicaProduccion   organica, agroecologica, tradicional...
  * @param categoriaCalidad    extra, primera, segunda o industrial.
@@ -45,7 +44,6 @@ import java.util.UUID;
 public record RegistrarLoteRequest(
         @NotBlank String codigo,
         @NotNull UUID productoId,
-        @NotNull UUID campesinoId,
         @NotNull UUID fincaOrigenId,
         @NotNull TecnicaProduccion tecnicaProduccion,
         @NotNull Calidad.Categoria categoriaCalidad,
@@ -57,11 +55,12 @@ public record RegistrarLoteRequest(
         @NotNull @PastOrPresent LocalDate fechaCosecha,
         @DecimalMin("0") @DecimalMax("40") BigDecimal porcentajeMerma) {
 
-    public RegistrarLoteCommand aComando() {
+    /** @param campesino quien registra; sale del token, nunca del cuerpo de la peticion. */
+    public RegistrarLoteCommand aComando(CampesinoId campesino) {
         return new RegistrarLoteCommand(
                 codigo,
                 ProductoId.de(productoId),
-                CampesinoId.de(campesinoId),
+                campesino,
                 fincaOrigenId,
                 tecnicaProduccion,
                 Calidad.de(categoriaCalidad, porcentajeDefectos, certificadoOrganico),

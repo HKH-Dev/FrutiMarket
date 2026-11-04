@@ -1,5 +1,6 @@
 package com.uniquindio.ecommerce.application.usecase;
 
+import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
 import com.uniquindio.ecommerce.application.dto.RegistrarLoteRequest;
 import com.uniquindio.ecommerce.application.port.out.Reloj;
 import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
@@ -50,8 +51,8 @@ class RegistrarLoteServiceTest {
         productos.registrar(mango);
     }
 
-    private RegistrarLoteRequest formulario(String codigo, UUID campesino) {
-        return new RegistrarLoteRequest(codigo, mango.id().valor(), campesino, UUID.randomUUID(),
+    private RegistrarLoteRequest formulario(String codigo) {
+        return new RegistrarLoteRequest(codigo, mango.id().valor(), UUID.randomUUID(),
                 TecnicaProduccion.AGROECOLOGICA, Calidad.Categoria.PRIMERA, 10, false,
                 new BigDecimal("200"), UnidadMedida.KILOGRAMO, new BigDecimal("3200"), COSECHA, null);
     }
@@ -59,10 +60,10 @@ class RegistrarLoteServiceTest {
     @Test
     void registrarUnLoteLoGuardaEnBorradorConSuCalidadYPublicaElEvento() {
         // Arrange
-        RegistrarLoteRequest request = formulario("LOT-MANGO-01", ana.getId().valor());
+        RegistrarLoteRequest request = formulario("LOT-MANGO-01");
 
         // Act
-        LoteId id = servicio.registrar(request.aComando());
+        LoteId id = servicio.registrar(request.aComando(ana.getId()));
 
         // Assert
         Lote guardado = lotes.obtenerLote(id).orElseThrow();
@@ -79,7 +80,7 @@ class RegistrarLoteServiceTest {
 
         // Act
         ReglaDeNegocioVioladaException excepcion = assertThrows(ReglaDeNegocioVioladaException.class,
-                () -> servicio.registrar(formulario("LOT-MANGO-02", ana.getId().valor()).aComando()));
+                () -> servicio.registrar(formulario("LOT-MANGO-02").aComando(ana.getId())));
 
         // Assert
         assertEquals("R1", excepcion.codigoRegla());
@@ -89,11 +90,11 @@ class RegistrarLoteServiceTest {
     @Test
     void noSePuedenRegistrarDosLotesConElMismoCodigo() {
         // Arrange
-        servicio.registrar(formulario("LOT-MANGO-03", ana.getId().valor()).aComando());
+        servicio.registrar(formulario("LOT-MANGO-03").aComando(ana.getId()));
 
         // Act
         ReglaDeNegocioVioladaException excepcion = assertThrows(ReglaDeNegocioVioladaException.class,
-                () -> servicio.registrar(formulario("LOT-MANGO-03", ana.getId().valor()).aComando()));
+                () -> servicio.registrar(formulario("LOT-MANGO-03").aComando(ana.getId())));
 
         // Assert
         assertEquals("INV-CODIGO", excepcion.codigoRegla());
@@ -106,6 +107,6 @@ class RegistrarLoteServiceTest {
 
         // Act & Assert
         assertThrows(RecursoNoEncontradoException.class,
-                () -> servicio.registrar(formulario("LOT-MANGO-04", desconocido).aComando()));
+                () -> servicio.registrar(formulario("LOT-MANGO-04").aComando(CampesinoId.de(desconocido))));
     }
 }
