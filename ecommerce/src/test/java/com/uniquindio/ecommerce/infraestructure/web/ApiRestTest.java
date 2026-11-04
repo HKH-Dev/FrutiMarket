@@ -137,6 +137,70 @@ class ApiRestTest {
                 .andExpect(jsonPath("$.compradorId").value(perfilId));
     }
 
+    /**
+     * Flujo de punta a punta de la entrega: un campesino se registra, el ADMIN lo autoriza, el
+     * campesino publica, un comprador compra, consulta sus compras y pide el reembolso.
+     */
+    @Test
+    void flujoCompletoDesdeElRegistroHastaElReembolso() throws Exception {
+        String sufijo = UUID.randomUUID().toString().substring(0, 6);
+
+        // 1. Un campesino nuevo se registra: todavia no puede ofrecer lotes (regla 1)
+        String registro = postJson("/api/auth/registro", """
+                {"correo":"luis%s@correo.com","clave":"claveSegura1","rol":"CAMPESINO","nombre":"Luis","numeroIdentificacion":"10%s"}
+                """.formatted(sufijo, sufijo.hashCode()), null)
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String campesinoNuevo = JsonPath.read(registro, "$.perfilId");
+        String tokenLuis = iniciarSesion("luis" + sufijo + "@correo.com", "claveSegura1");
+        postJson("/api/lotes", cuerpoMango("40"), tokenLuis).andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.regla").value("R1"));
+
+        // 2. El ADMIN lo autoriza; un comprador no puede hacerlo (403)
+        postJson("/api/campesinos/" + campesinoNuevo + "/autorizacion", "", comprador(RESTAURANTE))
+                .andExpect(status().isForbidden());
+        postJson("/api/campesinos/" + campesinoNuevo + "/autorizacion", "", admin())
+                .andExpect(status().isNoContent());
+
+        // 3. Ahora registra y publica su lote
+        String lote = postJson("/api/lotes", cuerpoMango("40"), tokenLuis)
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String loteId = JsonPath.read(lote, "$.id");
+        postJson("/api/lotes/" + loteId + "/publicar", "", tokenLuis).andExpect(status().isNoContent());
+
+        // 4. Un comprador compra, ve la compra en "mis compras" y pide el reembolso
+        String compra = postJson("/api/compras", """
+                {"items":[{"loteId":"%s","cantidad":10}]}
+                """.formatted(loteId), comprador(RESTAURANTE))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String compraId = JsonPath.read(compra, "$.compraId");
+        mvc.perform(get("/api/compras/mias").header(HttpHeaders.AUTHORIZATION, comprador(RESTAURANTE)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.compraId == '" + compraId + "')].estado").value("COMPLETADA"));
+        postJson("/api/compras/" + compraId + "/reembolso", "", comprador(RESTAURANTE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("REEMBOLSADA"));
+
+        // 5. Pedirlo otra vez rompe la regla: ya no esta COMPLETADA
+        postJson("/api/compras/" + compraId + "/reembolso", "", comprador(RESTAURANTE))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.regla").value("INV-COMPRA-REEMBOLSO"));
+    }
+
+    @Test
+    void otroCompradorNoPuedeReembolsarUnaCompraAjena() throws Exception {
+        String loteId = registrarMango(MARIA, "5");
+        postJson("/api/lotes/" + loteId + "/publicar", "", campesino(MARIA));
+        String compra = postJson("/api/compras", """
+                {"items":[{"loteId":"%s","cantidad":1}]}
+                """.formatted(loteId), comprador(RESTAURANTE))
+                .andReturn().getResponse().getContentAsString();
+
+        postJson("/api/compras/" + JsonPath.read(compra, "$.compraId") + "/reembolso", "",
+                comprador("33333333-0000-0000-0000-000000000002"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.regla").value("R19"));
+    }
+
     @Test
     void registrarseComoCampesinoSinIdentificacionDevuelve422() throws Exception {
         postJson("/api/auth/registro", """
@@ -171,6 +235,24 @@ class ApiRestTest {
                 .andExpect(jsonPath("$[?(@.id == '" + MANGO + "')].unidadVenta").value("KILOGRAMO"))
                 .andExpect(jsonPath("$[?(@.id == '" + MANGO + "')].simboloUnidad").value("kg"))
                 .andExpect(jsonPath("$[?(@.id == '" + MANGO + "')].enTemporada").value(true));
+    }
+
+    @Test
+    void buscarEnElCatalogoDevuelvePaginaConTotales() throws Exception {
+        // data.sql trae lotes publicados de mango, mora, platano y cafe
+        mvc.perform(get("/api/lotes/buscar").param("texto", "mango").param("pagina", "0").param("tamano", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contenido.length()").value(1))
+                .andExpect(jsonPath("$.contenido[0].producto").value("Mango Tommy"))
+                .andExpect(jsonPath("$.tamano").value(1))
+                .andExpect(jsonPath("$.totalElementos").isNumber())
+                .andExpect(jsonPath("$.totalPaginas").isNumber());
+    }
+
+    @Test
+    void buscarConTamanoDePaginaInvalidoDevuelve400() throws Exception {
+        mvc.perform(get("/api/lotes/buscar").param("tamano", "500")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/lotes/buscar").param("pagina", "-1")).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -238,6 +320,18 @@ class ApiRestTest {
 
     private String comprador(String compradorId) {
         return "Bearer " + emisor.emitir("comprador@prueba.com", List.of("COMPRADOR"), UUID.fromString(compradorId)).token();
+    }
+
+    private String admin() {
+        return "Bearer " + emisor.emitir("admin@prueba.com", List.of("ADMIN"), null).token();
+    }
+
+    private String iniciarSesion(String correo, String clave) throws Exception {
+        String login = postJson("/api/auth/login", """
+                {"correo":"%s","clave":"%s"}
+                """.formatted(correo, clave), null)
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        return "Bearer " + JsonPath.read(login, "$.token");
     }
 
     /** {@code autorizacion} nulo = sin token. */

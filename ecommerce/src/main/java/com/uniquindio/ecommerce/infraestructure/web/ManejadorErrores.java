@@ -1,5 +1,6 @@
 package com.uniquindio.ecommerce.infraestructure.web;
 
+import java.util.Set;
 import com.uniquindio.ecommerce.domain.exception.RecursoNoEncontradoException;
 import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import org.slf4j.Logger;
@@ -48,8 +49,9 @@ public class ManejadorErrores extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ReglaDeNegocioVioladaException.class)
     public ProblemDetail reglaViolada(ReglaDeNegocioVioladaException ex) {
-        // Un id mal formado no es una regla del negocio sino una peticion invalida.
-        HttpStatus estado = "INV-ID".equals(ex.codigoRegla()) ? HttpStatus.BAD_REQUEST : HttpStatus.UNPROCESSABLE_CONTENT;
+        // Un id mal formado o una pagina invalida no son reglas del negocio sino peticiones invalidas.
+        HttpStatus estado = Set.of("INV-ID", "INV-PAGINA").contains(ex.codigoRegla())
+                ? HttpStatus.BAD_REQUEST : HttpStatus.UNPROCESSABLE_CONTENT;
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(estado, ex.getMessage());
         problema.setTitle("Regla de negocio violada");
         problema.setProperty("regla", ex.codigoRegla());

@@ -1,5 +1,10 @@
 package com.uniquindio.ecommerce.infraestructure.persistence;
 
+import java.util.Locale;
+import java.util.Comparator;
+import java.time.Instant;
+import com.uniquindio.ecommerce.domain.consulta.Pagina;
+import com.uniquindio.ecommerce.domain.consulta.BusquedaLotes;
 import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
@@ -46,6 +51,25 @@ public class LoteRepositoryEnMemoria implements LoteRepository {
     @Override
     public List<Lote> lotesDelCampesino(CampesinoId campesino) {
         return lotes.values().stream().filter(lote -> lote.esDelCampesino(campesino)).toList();
+    }
+
+    @Override
+    public Pagina<Lote> buscarDisponibles(BusquedaLotes criterios) {
+        String texto = criterios.texto().toLowerCase(Locale.ROOT);
+        List<Lote> todos = lotes.values().stream()
+                .filter(Lote::estaDisponible)
+                .filter(lote -> lote.nombreProducto().toLowerCase(Locale.ROOT).contains(texto)
+                        || lote.codigo().toLowerCase(Locale.ROOT).contains(texto))
+                .filter(lote -> criterios.tipoCultivo() == null || lote.tipoCultivo() == criterios.tipoCultivo())
+                .filter(lote -> criterios.precioMaximo() == null || (lote.precioFinca() != null
+                        && lote.precioFinca().valorPorUnidad().compareTo(criterios.precioMaximo()) <= 0))
+                .sorted(Comparator.comparing((Lote lote) -> lote.fechaPublicacion().orElse(Instant.MIN)).reversed()
+                        .thenComparing(Lote::codigo))
+                .toList();
+        int desde = Math.min(criterios.pagina() * criterios.tamano(), todos.size());
+        int hasta = Math.min(desde + criterios.tamano(), todos.size());
+        int totalPaginas = (int) Math.ceil((double) todos.size() / criterios.tamano());
+        return new Pagina<>(todos.subList(desde, hasta), criterios.pagina(), criterios.tamano(), todos.size(), totalPaginas);
     }
 
     @Override
