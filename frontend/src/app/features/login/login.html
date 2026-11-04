@@ -1,11 +1,11 @@
 <section class="tarjeta formulario">
   <h1>Iniciar sesión</h1>
   <form [formGroup]="formulario" (ngSubmit)="entrar()" novalidate>
-    <label for="usuario">Usuario</label>
-    <input id="usuario" formControlName="usuario" autocomplete="username"
-           [attr.aria-invalid]="formulario.controls.usuario.invalid && formulario.controls.usuario.touched" />
-    @if (formulario.controls.usuario.invalid && formulario.controls.usuario.touched) {
-      <span class="campo-error">Escriba su usuario.</span>
+    <label for="correo">Correo</label>
+    <input id="correo" type="email" formControlName="correo" autocomplete="username"
+           [attr.aria-invalid]="formulario.controls.correo.invalid && formulario.controls.correo.touched" />
+    @if (formulario.controls.correo.invalid && formulario.controls.correo.touched) {
+      <span class="campo-error">Escriba un correo válido.</span>
     }
 
     <label for="clave">Contraseña</label>
@@ -23,5 +23,6 @@
       {{ enviando() ? 'Entrando…' : 'Entrar' }}
     </button>
   </form>
-  <p class="sutil ayuda">Usuarios de prueba: <code>admin</code>, <code>campesino</code>, <code>comprador</code> (claves en su <code>.env</code>).</p>
+  <p class="sutil ayuda">Usuarios de prueba: <code>admin@frutimarket.com</code>, <code>campesino@frutimarket.com</code> y
+    <code>comprador@frutimarket.com</code> (claves en su <code>.env</code>).</p>
 </section>
