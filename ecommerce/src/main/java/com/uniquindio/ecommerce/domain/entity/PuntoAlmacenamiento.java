@@ -90,6 +90,18 @@ public class PuntoAlmacenamiento {
                 && espacioDisponible() > 0;
     }
 
+    /** Regla 13: el destino de un traslado debe poder recibir el lote (cultivo, conservacion y espacio). */
+    public void exigirQuePuedeRecibir(TipoCultivo cultivo, Conservacion conservacion) {
+        ReglaDeNegocioVioladaException.validar(puedeRecibir(cultivo, conservacion), "R13",
+                nombre + " no puede recibir este lote (cultivo, conservacion o capacidad).");
+    }
+
+    /** Regla 15: solo se despacha a compradores de un municipio que este almacenamiento cubre. */
+    public void exigirCobertura(String municipioDestino) {
+        ReglaDeNegocioVioladaException.validar(cubre(municipioDestino), "R15",
+                nombre + " no entrega en " + municipioDestino + ".");
+    }
+
     public int espacioDisponible() {
         return capacidadLotes - lotesAlmacenados.size();
     }

@@ -40,6 +40,11 @@ public class Comprador {
         this.activo = false;
     }
 
+    /** Un comprador inactivo no puede hacer compras nuevas. */
+    public void exigirActivo() {
+        ReglaDeNegocioVioladaException.validar(activo, "INV-COMPRADOR", "El comprador " + nombre + " esta inactivo.");
+    }
+
     public CompradorId getId() { return id; }
     public String getNombre() { return nombre; }
     public Tipo getTipo() { return tipo; }

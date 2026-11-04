@@ -11,7 +11,6 @@ import com.uniquindio.ecommerce.domain.entity.Comprador;
 import com.uniquindio.ecommerce.domain.entity.DetalleCompra;
 import com.uniquindio.ecommerce.domain.event.EventoDominio;
 import com.uniquindio.ecommerce.domain.exception.RecursoNoEncontradoException;
-import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import com.uniquindio.ecommerce.domain.repository.CompraRepository;
 import com.uniquindio.ecommerce.domain.repository.CompradorRepository;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
@@ -48,8 +47,7 @@ public class RealizarCompraService extends ServicioDeAplicacion implements Reali
         CompradorId compradorId = CompradorId.de(request.compradorId());
         Comprador comprador = compradorRepository.obtenerComprador(compradorId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Comprador", compradorId));
-        ReglaDeNegocioVioladaException.validar(comprador.estaActivo(), "INV-COMPRADOR",
-                "El comprador " + comprador.getNombre() + " esta inactivo.");
+        comprador.exigirActivo();
 
         Compra compra = Compra.builder().compradorId(compradorId).fecha(ahora).build();
         for (RealizarCompraRequest.Item item : request.items()) {
