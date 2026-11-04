@@ -28,4 +28,10 @@ public interface LoteRepository {
     List<Lote> lotesEnAlmacen(AlmacenId almacen, TipoCultivo tipoCultivo);
 
     List<Lote> lotesVencidosSinCerrar(LocalDate hoy);
+    /**
+     * Catalogo paginado: lotes PUBLICADOS con existencias cuyo producto o codigo contiene el texto
+     * (vacio = todos) y, si tipoCultivo no es nulo, de ese tipo. Los lotes retirados no aparecen.
+     */
+    Pagina<Lote> buscarEnCatalogo(String texto, TipoCultivo tipoCultivo, int pagina, int tamano);
+
 }

@@ -3,6 +3,7 @@ package com.uniquindio.ecommerce.infraestructure.web;
 import com.uniquindio.ecommerce.domain.exception.RecursoNoEncontradoException;
 import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import org.slf4j.Logger;
+import java.util.Set;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -37,6 +38,7 @@ import java.util.Map;
 public class ManejadorErrores extends ResponseEntityExceptionHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ManejadorErrores.class);
+    private static final Set<String> CODIGOS_DE_PETICION_INVALIDA = Set.of("INV-ID", "INV-PAGINA");
 
     /** Si se envia al cliente la causa tecnica de un JSON ilegible. Util en desarrollo; apagado en produccion. */
     private final boolean mostrarCausa;
@@ -47,8 +49,9 @@ public class ManejadorErrores extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ReglaDeNegocioVioladaException.class)
     public ProblemDetail reglaViolada(ReglaDeNegocioVioladaException ex) {
-        // Un id mal formado no es una regla del negocio sino una peticion invalida.
-        HttpStatus estado = "INV-ID".equals(ex.codigoRegla()) ? HttpStatus.BAD_REQUEST : HttpStatus.UNPROCESSABLE_CONTENT;
+        // Un id mal formado o una pagina negativa no son reglas del negocio sino peticiones invalidas.
+        HttpStatus estado = ex.codigoRegla() != null && CODIGOS_DE_PETICION_INVALIDA.contains(ex.codigoRegla())
+                ? HttpStatus.BAD_REQUEST : HttpStatus.UNPROCESSABLE_CONTENT;
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(estado, ex.getMessage());
         problema.setTitle("Regla de negocio violada");
         problema.setProperty("regla", ex.codigoRegla());

@@ -2,6 +2,10 @@ package com.uniquindio.ecommerce.infraestructure.persistence.jpa;
 
 import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
+import com.uniquindio.ecommerce.domain.repository.Pagina;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import com.uniquindio.ecommerce.domain.catalogo.RegistroCustodia;
 import com.uniquindio.ecommerce.domain.catalogo.ReservaLote;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
@@ -91,7 +95,20 @@ public class LoteRepositoryJpa implements LoteRepository {
     public List<Lote> lotesVencidosSinCerrar(LocalDate hoy) {
         return aDominio(jpa.findByFechaLimiteConsumoBeforeAndEstadoIn(hoy, NO_TERMINALES));
     }
-
+    @Override
+    @Transactional(readOnly = true)
+    public Pagina<Lote> buscarEnCatalogo(String texto, TipoCultivo tipoCultivo, int pagina, int tamano) {
+        String patron = "%" + (texto == null ? "" : texto.trim().toLowerCase()) + "%";
+        boolean filtrarTipo = tipoCultivo != null;
+        // Si no se filtra se envia un valor cualquiera: la consulta lo ignora (filtrarTipo = false).
+        TipoCultivo tipo = filtrarTipo ? tipoCultivo : TipoCultivo.values()[0];
+        Sort orden = Sort.by("nombreProducto").ascending().and(Sort.by("codigo").ascending());
+        Page<LoteEntity> resultado = jpa.buscarEnCatalogo(EstadoLote.PUBLICADO, BigDecimal.ZERO, patron,
+                filtrarTipo, tipo, PageRequest.of(pagina, tamano, orden));
+        // Aqui termina Spring: hacia el dominio sale una Pagina propia.
+        return new Pagina<>(aDominio(resultado.getContent()), pagina, tamano,
+                resultado.getTotalElements(), resultado.getTotalPages());
+    }
     // =====================================================================
     //  MAPEO DOMINIO <-> TABLA
     // =====================================================================

@@ -1,6 +1,8 @@
 package com.uniquindio.ecommerce.infraestructure.persistence;
 
 import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
+import com.uniquindio.ecommerce.domain.repository.Pagina;
+
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.AlmacenId;
@@ -63,5 +65,22 @@ public class LoteRepositoryEnMemoria implements LoteRepository {
                 .filter(lote -> lote.estaVencido(hoy))
                 .filter(lote -> !lote.estado().esTerminal())
                 .toList();
+    }
+    @Override
+    public Pagina<Lote> buscarEnCatalogo(String texto, TipoCultivo tipoCultivo, int pagina, int tamano) {
+        String buscado = texto == null ? "" : texto.trim().toLowerCase();
+        List<Lote> coincidencias = lotes.values().stream()
+                .filter(lote -> lote.estado() == EstadoLote.PUBLICADO)
+                .filter(Lote::estaDisponible)
+                .filter(lote -> tipoCultivo == null || lote.tipoCultivo() == tipoCultivo)
+                .filter(lote -> lote.nombreProducto().toLowerCase().contains(buscado)
+                        || lote.codigo().toLowerCase().contains(buscado))
+                .sorted(java.util.Comparator.comparing((Lote lote) -> lote.nombreProducto().toLowerCase())
+                        .thenComparing(Lote::codigo))
+                .toList();
+        int desde = Math.min(pagina * tamano, coincidencias.size());
+        int hasta = Math.min(desde + tamano, coincidencias.size());
+        int totalPaginas = (int) Math.ceil(coincidencias.size() / (double) tamano);
+        return new Pagina<>(coincidencias.subList(desde, hasta), pagina, tamano, coincidencias.size(), totalPaginas);
     }
 }
