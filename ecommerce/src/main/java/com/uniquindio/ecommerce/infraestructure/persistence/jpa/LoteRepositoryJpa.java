@@ -1,5 +1,12 @@
 package com.uniquindio.ecommerce.infraestructure.persistence.jpa;
 
+import java.util.Locale;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import com.uniquindio.ecommerce.domain.consulta.Pagina;
+import com.uniquindio.ecommerce.domain.consulta.BusquedaLotes;
 import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.catalogo.RegistroCustodia;
@@ -78,6 +85,18 @@ public class LoteRepositoryJpa implements LoteRepository {
     @Transactional(readOnly = true)
     public List<Lote> lotesDelCampesino(CampesinoId campesino) {
         return aDominio(jpa.findByCampesinoId(campesino.valor()));
+    }
+
+    /** Aqui, y solo aqui, se traduce entre la pagina del dominio y la de Spring Data. */
+    @Override
+    @Transactional(readOnly = true)
+    public Pagina<Lote> buscarDisponibles(BusquedaLotes criterios) {
+        Pageable pagina = PageRequest.of(criterios.pagina(), criterios.tamano(),
+                Sort.by(Sort.Order.desc("fechaPublicacion"), Sort.Order.asc("codigo")));
+        Page<LoteEntity> resultado = jpa.buscarDisponibles(EstadoLote.PUBLICADO,
+                criterios.texto().toLowerCase(Locale.ROOT), criterios.tipoCultivo(), criterios.precioMaximo(), pagina);
+        return new Pagina<>(aDominio(resultado.getContent()), resultado.getNumber(), resultado.getSize(),
+                resultado.getTotalElements(), resultado.getTotalPages());
     }
 
     @Override

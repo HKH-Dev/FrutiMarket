@@ -1,5 +1,7 @@
 package com.uniquindio.ecommerce.domain.repository;
 
+import com.uniquindio.ecommerce.domain.consulta.Pagina;
+import com.uniquindio.ecommerce.domain.consulta.BusquedaLotes;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.AlmacenId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
@@ -23,6 +25,12 @@ public interface LoteRepository {
     List<Lote> lotesDisponiblesDe(ProductoId producto);
 
     List<Lote> lotesDelCampesino(CampesinoId campesino);
+
+    /**
+     * Catalogo paginado: lotes publicados con cantidad disponible que cumplen los criterios,
+     * los publicados mas recientemente primero.
+     */
+    Pagina<Lote> buscarDisponibles(BusquedaLotes criterios);
 
     /** Regla 16: lotes guardados en un almacenamiento, para ordenarlos por FEFO. */
     List<Lote> lotesEnAlmacen(AlmacenId almacen, TipoCultivo tipoCultivo);

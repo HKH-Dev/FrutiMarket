@@ -1,5 +1,7 @@
 package com.uniquindio.ecommerce.application.port.in;
 
+import com.uniquindio.ecommerce.domain.consulta.Pagina;
+import com.uniquindio.ecommerce.domain.consulta.BusquedaLotes;
 import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
 import com.uniquindio.ecommerce.domain.catalogo.RegistroCustodia;
 import com.uniquindio.ecommerce.domain.valueobject.catalogo.Cantidad;
@@ -29,6 +31,9 @@ public interface ConsultarLoteUseCase {
     List<VistaLote> consultarDisponiblesDe(ProductoId producto);
 
     Optional<VistaLote> mejorLoteDe(ProductoId producto);
+
+    /** Catalogo paginado con busqueda por texto y filtros (tipo de cultivo, precio maximo). */
+    Pagina<VistaLote> buscarDisponibles(BusquedaLotes criterios);
 
     List<VistaLote> consultarPorCampesino(CampesinoId campesino);
 

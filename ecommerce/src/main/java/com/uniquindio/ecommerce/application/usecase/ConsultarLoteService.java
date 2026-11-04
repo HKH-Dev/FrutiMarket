@@ -1,5 +1,8 @@
 package com.uniquindio.ecommerce.application.usecase;
 
+import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
+import com.uniquindio.ecommerce.domain.consulta.Pagina;
+import com.uniquindio.ecommerce.domain.consulta.BusquedaLotes;
 import com.uniquindio.ecommerce.application.port.in.ConsultarLoteUseCase;
 import com.uniquindio.ecommerce.application.port.out.PublicadorEventos;
 import com.uniquindio.ecommerce.application.port.out.Reloj;
@@ -21,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class ConsultarLoteService extends ServicioDeAplicacion implements ConsultarLoteUseCase {
+
+    private static final int TAMANO_MAXIMO_PAGINA = 50;
 
     public ConsultarLoteService(LoteRepository loteRepository, Reloj reloj, PublicadorEventos publicadorEventos) {
         super(loteRepository, reloj, publicadorEventos);
@@ -46,6 +51,16 @@ public class ConsultarLoteService extends ServicioDeAplicacion implements Consul
     public List<VistaLote> consultarDisponiblesDe(ProductoId producto) {
         Instant ahora = reloj.ahora();
         return aVistas(SeleccionLotes.mejoresPrimero(loteRepository.lotesDisponiblesDe(producto), ahora), ahora);
+    }
+
+    @Override
+    public Pagina<VistaLote> buscarDisponibles(BusquedaLotes criterios) {
+        // Validacion de entrada (no es regla de negocio): pagina y tamano razonables
+        ReglaDeNegocioVioladaException.validar(criterios.pagina() >= 0, "INV-PAGINA", "La pagina no puede ser negativa.");
+        ReglaDeNegocioVioladaException.validar(criterios.tamano() >= 1 && criterios.tamano() <= TAMANO_MAXIMO_PAGINA,
+                "INV-PAGINA", "El tamano de pagina debe estar entre 1 y " + TAMANO_MAXIMO_PAGINA + ".");
+        Instant ahora = reloj.ahora();
+        return loteRepository.buscarDisponibles(criterios).map(lote -> aVista(lote, ahora));
     }
 
     @Override
