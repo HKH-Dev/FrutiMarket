@@ -1,5 +1,10 @@
 package com.uniquindio.ecommerce.infraestructure.web;
 
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.Parameter;
+import com.uniquindio.ecommerce.infraestructure.seguridad.UsuarioActual;
 import com.uniquindio.ecommerce.application.dto.CompraResponse;
 import com.uniquindio.ecommerce.application.dto.RealizarCompraRequest;
 import com.uniquindio.ecommerce.application.port.in.RealizarCompraUseCase;
@@ -25,10 +30,13 @@ public class CompraController {
     }
 
     @PostMapping
-    @Operation(summary = "Realizar una compra",
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Realizar una compra (COMPRADOR)",
             description = "Reserva cada item (regla 3) y confirma la compra. Si un item falla, no se compra nada. "
                     + "El precio se toma del lote, no del cliente.")
-    public ResponseEntity<CompraResponse> comprar(@Valid @RequestBody RealizarCompraRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(realizarCompra.comprar(request));
+    public ResponseEntity<CompraResponse> comprar(@Valid @RequestBody RealizarCompraRequest request,
+                                                  @Parameter(hidden = true) @AuthenticationPrincipal Jwt token) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(realizarCompra.comprar(UsuarioActual.comprador(token), request));
     }
 }

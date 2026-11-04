@@ -12,7 +12,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -51,7 +50,7 @@ class ReporteSeguridadTest {
     @Test
     void conTokenDeRolEquivocadoResponde403() throws Exception {
         // Preparar: token valido, pero de un comprador
-        String token = emisor.emitir("comprador", List.of("COMPRADOR")).token();
+        String token = emisor.emitir("comprador@frutimarket.com", List.of("COMPRADOR"), null).token();
 
         // Ejecutar y verificar
         mvc.perform(get(RUTA_PROTEGIDA).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -61,7 +60,7 @@ class ReporteSeguridadTest {
     @Test
     void conTokenDeAdminResponde200() throws Exception {
         // Preparar: token valido con rol ADMIN
-        String token = emisor.emitir("admin", List.of("ADMIN")).token();
+        String token = emisor.emitir("admin@frutimarket.com", List.of("ADMIN"), null).token();
 
         // Ejecutar y verificar
         mvc.perform(get(RUTA_PROTEGIDA).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -72,7 +71,7 @@ class ReporteSeguridadTest {
     @Test
     void tokenAlteradoResponde401() throws Exception {
         // Preparar: token de ADMIN al que se le cambia la firma
-        String token = emisor.emitir("admin", List.of("ADMIN")).token();
+        String token = emisor.emitir("admin@frutimarket.com", List.of("ADMIN"), null).token();
         String alterado = token.substring(0, token.length() - 4) + "AAAA";
 
         // Ejecutar y verificar
@@ -84,9 +83,11 @@ class ReporteSeguridadTest {
     void loginDeAdminEntregaUnTokenQueAbreLaRutaProtegida() throws Exception {
         // Preparar y ejecutar: iniciar sesion con el usuario de demostracion
         String respuesta = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"usuario\":\"admin\",\"clave\":\"admin123\"}"))
+                        .content("{\"correo\":\"admin@frutimarket.com\",\"clave\":\"admin123\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.roles").value(contains("ADMIN"))) // exactamente ["ADMIN"]
+                .andExpect(jsonPath("$.rol").value("ADMIN"))
+                .andExpect(jsonPath("$.correo").value("admin@frutimarket.com"))
+                .andExpect(jsonPath("$.expiraEn").exists())
                 .andReturn().getResponse().getContentAsString();
         String token = JsonPath.read(respuesta, "$.token");
 
@@ -98,7 +99,7 @@ class ReporteSeguridadTest {
     @Test
     void loginConClaveIncorrectaResponde401() throws Exception {
         mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"usuario\":\"admin\",\"clave\":\"equivocada\"}"))
+                        .content("{\"correo\":\"admin@frutimarket.com\",\"clave\":\"equivocada\"}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("No autenticado"));
     }

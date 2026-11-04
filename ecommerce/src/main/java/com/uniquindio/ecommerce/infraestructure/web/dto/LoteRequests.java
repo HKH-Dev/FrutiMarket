@@ -2,6 +2,7 @@ package com.uniquindio.ecommerce.infraestructure.web.dto;
 
 import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.Calidad;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
@@ -13,22 +14,19 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/** Cuerpos de las peticiones sobre un lote ya registrado. */
+/**
+ * Cuerpos de las peticiones sobre un lote ya registrado. Ninguno trae el id del campesino:
+ * quien hace la operacion sale del token (ver UsuarioActual).
+ */
 public final class LoteRequests {
 
     private LoteRequests() {
     }
 
-    @Schema(description = "Campesino que solicita la operacion; debe ser el responsable del lote (regla 5).")
-    public record SolicitudCampesino(@NotNull UUID campesinoId) {
+    public record DesactivarRequest(@Schema(example = "Lluvias retrasaron la recoleccion") String motivo) {
     }
 
-    public record DesactivarRequest(@NotNull UUID campesinoId,
-                                    @Schema(example = "Lluvias retrasaron la recoleccion") String motivo) {
-    }
-
-    public record MermaRequest(@NotNull UUID campesinoId,
-                               @NotNull @DecimalMin("0") @DecimalMax("40") BigDecimal porcentaje,
+    public record MermaRequest(@NotNull @DecimalMin("0") @DecimalMax("40") BigDecimal porcentaje,
                                @Schema(example = "Golpes durante la cosecha") String justificacion) {
     }
 
@@ -42,7 +40,7 @@ public final class LoteRequests {
         }
     }
 
-    public record CorregirCalidadRequest(@NotNull UUID campesinoId, @NotNull CalidadRequest calidad) {
+    public record CorregirCalidadRequest(@NotNull @Valid CalidadRequest calidad) {
     }
 
     @Schema(description = "Reserva de un pedido; la cantidad va en la unidad del lote.")

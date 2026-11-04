@@ -42,9 +42,8 @@ public class RealizarCompraService extends ServicioDeAplicacion implements Reali
     }
 
     @Override
-    public CompraResponse comprar(RealizarCompraRequest request) {
+    public CompraResponse comprar(CompradorId compradorId, RealizarCompraRequest request) {
         Instant ahora = reloj.ahora();
-        CompradorId compradorId = CompradorId.de(request.compradorId());
         Comprador comprador = compradorRepository.obtenerComprador(compradorId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Comprador", compradorId));
         comprador.exigirActivo();

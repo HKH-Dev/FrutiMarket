@@ -1,5 +1,10 @@
 package com.uniquindio.ecommerce.infraestructure.web;
 
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.Parameter;
+import com.uniquindio.ecommerce.infraestructure.seguridad.UsuarioActual;
 import com.uniquindio.ecommerce.application.dto.RegistrarLoteRequest;
 import com.uniquindio.ecommerce.application.port.in.ConsultarLoteUseCase;
 import com.uniquindio.ecommerce.application.port.in.PublicarLoteUseCase;
@@ -9,7 +14,6 @@ import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.ProductoId;
 import com.uniquindio.ecommerce.infraestructure.web.dto.LoteRequests.DesactivarRequest;
-import com.uniquindio.ecommerce.infraestructure.web.dto.LoteRequests.SolicitudCampesino;
 import com.uniquindio.ecommerce.infraestructure.web.dto.LoteResponses.DiagnosticoPublicacionResponse;
 import com.uniquindio.ecommerce.infraestructure.web.dto.LoteResponses.LoteRegistradoResponse;
 import com.uniquindio.ecommerce.infraestructure.web.dto.LoteResponses.LoteResumenResponse;
@@ -49,9 +53,12 @@ public class LoteController {
     }
 
     @PostMapping
-    @Operation(summary = "Registrar un lote cosechado", description = "Queda en estado REGISTRADO hasta que se publique.")
-    public ResponseEntity<LoteRegistradoResponse> registrar(@Valid @RequestBody RegistrarLoteRequest request) {
-        LoteId id = registrarLote.registrar(request.aComando());
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Registrar un lote cosechado (CAMPESINO)",
+            description = "Queda en estado REGISTRADO hasta que se publique. El campesino es el del token.")
+    public ResponseEntity<LoteRegistradoResponse> registrar(@Valid @RequestBody RegistrarLoteRequest request,
+                                                            @Parameter(hidden = true) @AuthenticationPrincipal Jwt token) {
+        LoteId id = registrarLote.registrar(request.aComando(UsuarioActual.campesino(token)));
         var ubicacion = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}/trazabilidad")
                 .buildAndExpand(id.valor()).toUri();
         return ResponseEntity.created(ubicacion).body(new LoteRegistradoResponse(id.valor()));
@@ -69,6 +76,14 @@ public class LoteController {
     public LoteResumenResponse mejorDe(@RequestParam UUID productoId) {
         return consultarLote.mejorLoteDe(ProductoId.de(productoId)).map(LoteResumenResponse::desde)
                 .orElseThrow(() -> new RecursoNoEncontradoException("lote disponible del producto", productoId));
+    }
+
+    @GetMapping("/mios")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Mis lotes (CAMPESINO)", description = "Los lotes del campesino del token, en cualquier estado.")
+    public List<LoteResumenResponse> misLotes(@Parameter(hidden = true) @AuthenticationPrincipal Jwt token) {
+        return consultarLote.consultarPorCampesino(UsuarioActual.campesino(token)).stream()
+                .map(LoteResumenResponse::desde).toList();
     }
 
     @GetMapping("/campesino/{campesinoId}")
@@ -93,30 +108,36 @@ public class LoteController {
     }
 
     @PostMapping("/{id}/publicar")
-    @Operation(summary = "Publicar en el catalogo", description = "Reglas 1, 2 y 8. Aplica la merma antes de publicar.")
-    public ResponseEntity<Void> publicar(@PathVariable UUID id, @Valid @RequestBody SolicitudCampesino solicitud) {
-        publicarLote.publicar(LoteId.de(id), CampesinoId.de(solicitud.campesinoId()));
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Publicar en el catalogo (CAMPESINO dueno)", description = "Reglas 1, 2, 5 y 8. Aplica la merma antes de publicar.")
+    public ResponseEntity<Void> publicar(@PathVariable UUID id, @Parameter(hidden = true) @AuthenticationPrincipal Jwt token) {
+        publicarLote.publicar(LoteId.de(id), UsuarioActual.campesino(token));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/desactivar")
-    @Operation(summary = "Sacar temporalmente de la venta", description = "Regla 5: no se borra; puede reactivarse.")
-    public ResponseEntity<Void> desactivar(@PathVariable UUID id, @Valid @RequestBody DesactivarRequest request) {
-        publicarLote.desactivar(LoteId.de(id), CampesinoId.de(request.campesinoId()), request.motivo());
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Sacar temporalmente de la venta (CAMPESINO dueno)", description = "Regla 5: no se borra; puede reactivarse.")
+    public ResponseEntity<Void> desactivar(@PathVariable UUID id, @Valid @RequestBody DesactivarRequest request,
+                                           @Parameter(hidden = true) @AuthenticationPrincipal Jwt token) {
+        publicarLote.desactivar(LoteId.de(id), UsuarioActual.campesino(token), request.motivo());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/reactivar")
-    @Operation(summary = "Volver a publicar un lote desactivado")
-    public ResponseEntity<Void> reactivar(@PathVariable UUID id, @Valid @RequestBody SolicitudCampesino solicitud) {
-        publicarLote.reactivar(LoteId.de(id), CampesinoId.de(solicitud.campesinoId()));
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Volver a publicar un lote desactivado (CAMPESINO dueno)")
+    public ResponseEntity<Void> reactivar(@PathVariable UUID id, @Parameter(hidden = true) @AuthenticationPrincipal Jwt token) {
+        publicarLote.reactivar(LoteId.de(id), UsuarioActual.campesino(token));
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Retirar definitivamente", description = "Regla 5: falla con 422 si tiene pedidos activos.")
-    public ResponseEntity<Void> retirar(@PathVariable UUID id, @RequestParam UUID campesinoId) {
-        publicarLote.retirar(LoteId.de(id), CampesinoId.de(campesinoId));
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Retirar definitivamente (CAMPESINO dueno)",
+            description = "Borrado logico: el lote pasa a RETIRADO y no se elimina la fila. Regla 5: falla con 422 si tiene pedidos activos.")
+    public ResponseEntity<Void> retirar(@PathVariable UUID id, @Parameter(hidden = true) @AuthenticationPrincipal Jwt token) {
+        publicarLote.retirar(LoteId.de(id), UsuarioActual.campesino(token));
         return ResponseEntity.noContent().build();
     }
 }

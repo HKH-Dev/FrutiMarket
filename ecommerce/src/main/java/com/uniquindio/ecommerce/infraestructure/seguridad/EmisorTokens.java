@@ -1,7 +1,5 @@
 package com.uniquindio.ecommerce.infraestructure.seguridad;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -12,10 +10,15 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 /** Firma los tokens JWT que entrega el login. */
 @Component
 public class EmisorTokens {
+
+    static final String CLAIM_CORREO = "correo";
+    /** Id del campesino o comprador que representa el usuario. */
+    static final String CLAIM_ACTOR = "actorId";
 
     private final JwtEncoder encoder;
     private final Duration vigencia;
@@ -25,33 +28,27 @@ public class EmisorTokens {
         this.vigencia = Duration.ofMinutes(propiedades.expiracionMinutos());
     }
 
-    public TokenEmitido emitir(Authentication autenticado) {
-        // Solo los roles (ROLE_*). Spring Security 7 agrega otras autoridades internas, como
-        // FACTOR_PASSWORD (indica que se entro con clave), que no deben viajar en el token.
-        List<String> roles = autenticado.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .filter(autoridad -> autoridad.startsWith("ROLE_"))
-                .map(autoridad -> autoridad.substring("ROLE_".length()))
-                .toList();
-        return emitir(autenticado.getName(), roles);
-    }
-
-    /** Tambien lo usan las pruebas para obtener tokens con un rol concreto. */
-    public TokenEmitido emitir(String usuario, List<String> roles) {
+    /**
+     * Firma un token para el usuario. Claims: {@code sub} y {@code correo} (el correo), {@code roles},
+     * {@code actorId} (su CampesinoId o CompradorId, si tiene) y la fecha de vencimiento {@code exp}.
+     */
+    public TokenEmitido emitir(String correo, List<String> roles, UUID actorId) {
         Instant ahora = Instant.now();
-        JwtClaimsSet claims = JwtClaimsSet.builder()
+        JwtClaimsSet.Builder claims = JwtClaimsSet.builder()
                 .issuer("frutimarket")
-                .subject(usuario)
+                .subject(correo)
                 .issuedAt(ahora)
                 .expiresAt(ahora.plus(vigencia))
-                .claim("correo", usuario)
-                .claim(SeguridadConfig.CLAIM_ROLES, roles)
-                .build();
-        String token = encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
+                .claim(CLAIM_CORREO, correo)
+                .claim(SeguridadConfig.CLAIM_ROLES, roles);
+        if (actorId != null) {
+            claims.claim(CLAIM_ACTOR, actorId.toString());
+        }
+        String token = encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims.build()))
                 .getTokenValue();
-        return new TokenEmitido(token, ahora.plus(vigencia), roles);
+        return new TokenEmitido(token, correo, ahora.plus(vigencia), roles);
     }
 
-    public record TokenEmitido(String token, Instant expiraEn, List<String> roles) {
+    public record TokenEmitido(String token, String correo, Instant expiraEn, List<String> roles) {
     }
 }
