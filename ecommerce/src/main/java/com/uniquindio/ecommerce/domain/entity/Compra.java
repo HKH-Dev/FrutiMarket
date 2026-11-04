@@ -6,6 +6,7 @@ import com.uniquindio.ecommerce.domain.valueobject.identidad.CompradorId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.PedidoId;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,10 +21,15 @@ import java.util.List;
  *   <li><b>INV-COMPRA-VACIA:</b> nunca puede confirmarse una compra sin detalles.</li>
  *   <li><b>INV-COMPRA-ESTADO:</b> nunca puede agregarse detalles, confirmarse ni cancelarse si no esta PENDIENTE.</li>
  *   <li><b>INV-COMPRA-REEMBOLSO:</b> nunca puede reembolsarse una compra que no este COMPLETADA.</li>
+ *   <li><b>R19:</b> solo el comprador que hizo la compra puede pedir su reembolso.</li>
+ *   <li><b>R20:</b> el reembolso se pide dentro del plazo ({@link #PLAZO_REEMBOLSO}) desde la fecha de compra.</li>
  *   <li><b>INV-COMPRA-TOTAL:</b> el total siempre es la suma de los subtotales de sus detalles.</li>
  * </ul>
  */
 public class Compra {
+
+    /** Regla 20: plazo para pedir un reembolso, contado desde la fecha de la compra. */
+    public static final Duration PLAZO_REEMBOLSO = Duration.ofDays(3);
 
     private final PedidoId id;
     private final CompradorId compradorId;
@@ -70,10 +76,25 @@ public class Compra {
         this.estado = EstadoCompra.CANCELADA;
     }
 
-    public void reembolsar() {
+    /**
+     * Reglas 19 y 20 e INV-COMPRA-REEMBOLSO. Si alguna falla, la compra no cambia.
+     *
+     * @param solicitante quien pide el reembolso (sale del token).
+     * @param momento     cuando lo pide (lo da el Reloj del caso de uso).
+     */
+    public void reembolsar(CompradorId solicitante, Instant momento) {
+        ReglaDeNegocioVioladaException.validar(compradorId.equals(solicitante), "R19",
+                "Solo el comprador que hizo la compra puede pedir su reembolso.");
         ReglaDeNegocioVioladaException.validar(estado == EstadoCompra.COMPLETADA, "INV-COMPRA-REEMBOLSO",
                 "Solo se puede reembolsar una compra COMPLETADA. Estado actual: " + estado);
+        Instant limite = fecha.plus(PLAZO_REEMBOLSO);
+        ReglaDeNegocioVioladaException.validar(!momento.isAfter(limite), "R20",
+                "El plazo para pedir el reembolso (" + PLAZO_REEMBOLSO.toDays() + " dias) vencio el " + limite + ".");
         this.estado = EstadoCompra.REEMBOLSADA;
+    }
+
+    public boolean esDelComprador(CompradorId comprador) {
+        return compradorId.equals(comprador);
     }
 
     public BigDecimal total() {

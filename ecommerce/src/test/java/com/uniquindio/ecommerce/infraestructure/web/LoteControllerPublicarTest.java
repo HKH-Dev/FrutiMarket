@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -31,6 +31,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -40,7 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * <p>{@code @WebMvcTest} carga solo la capa web (este controller, el manejador de errores y la
  * seguridad). El caso de uso {@link PublicarLoteService} es el real, para que las reglas se apliquen
- * de verdad; lo que se simula con Mockito son los repositorios. Asi se puede comprobar con
+ * de verdad; lo que se simula con Mockito son los repositorios. El token JWT se simula con
+ * {@code jwt()} de spring-security-test (rol y claim actorId). Asi se puede comprobar con
  * {@code verify(..., never())} que, si algo falla, el lote <b>nunca se guarda</b>
  * ({@code almacenar} es el "guardar" de nuestro repositorio).</p>
  */
@@ -108,6 +110,23 @@ class LoteControllerPublicarTest {
         verify(loteRepository, never()).almacenar(any());
     }
 
+    @Test
+    void sinTokenResponde401YNoGuardaNada() throws Exception {
+        // Ejecutar: la misma peticion, sin token
+        mvc.perform(post("/api/lotes/" + lote.id().valor() + "/publicar"))
+                // Verificar: la seguridad la corta antes del controller
+                .andExpect(status().isUnauthorized());
+        verify(loteRepository, never()).almacenar(any());
+    }
+
+    @Test
+    void unCompradorNoPuedePublicarResponde403YNoGuardaNada() throws Exception {
+        mvc.perform(post("/api/lotes/" + lote.id().valor() + "/publicar")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_COMPRADOR"))))
+                .andExpect(status().isForbidden());
+        verify(loteRepository, never()).almacenar(any());
+    }
+
     /** Caso de control: si todo esta bien si se guarda, asi sabemos que los never() de arriba significan algo. */
     @Test
     void campesinoAutorizadoPublicaYElLoteSeGuardaUnaVez() throws Exception {
@@ -124,10 +143,14 @@ class LoteControllerPublicarTest {
         verify(loteRepository, times(1)).almacenar(lote);
     }
 
+    /**
+     * POST de publicar con un JWT simulado (spring-security-test): rol CAMPESINO y el id del campesino
+     * en el claim "actorId", igual que el token real. Sin esto la seguridad responderia 401.
+     */
     private ResultActions publicar(UUID loteId, CampesinoId solicitante) throws Exception {
         return mvc.perform(post("/api/lotes/" + loteId + "/publicar")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"campesinoId\":\"" + solicitante + "\"}"));
+                .with(jwt().jwt(token -> token.claim("actorId", solicitante.toString()))
+                        .authorities(new SimpleGrantedAuthority("ROLE_CAMPESINO"))));
     }
 
     private static Campesino campesino(CampesinoId id, boolean autorizado) {

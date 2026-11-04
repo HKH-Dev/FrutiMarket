@@ -1,5 +1,6 @@
 package com.uniquindio.ecommerce.infraestructure.web;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import com.uniquindio.ecommerce.application.port.in.ConsultarLoteUseCase;
 import com.uniquindio.ecommerce.application.port.in.GestionarLogisticaLoteUseCase;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.AlmacenId;
@@ -28,7 +29,8 @@ import java.util.UUID;
 
 /** Movimiento fisico del lote: finca, acopio, redistribucion y comprador. */
 @RestController
-@Tag(name = "Logistica", description = "Cadena de custodia: almacenamiento, despachos y entrega")
+@Tag(name = "Logistica", description = "Cadena de custodia: almacenamiento, despachos y entrega (ADMIN)")
+@SecurityRequirement(name = "bearerAuth")
 public class LogisticaController {
 
     private final GestionarLogisticaLoteUseCase logistica;

@@ -28,9 +28,10 @@ import java.nio.charset.StandardCharsets;
  *
  * <ul>
  *   <li>Sin sesiones: cada peticion trae su token en {@code Authorization: Bearer ...}.</li>
- *   <li>Rutas por rol (sin token responde 401; con token de otro rol, 403):
- *       lotes (registrar, publicar, desactivar, reactivar, retirar) solo CAMPESINO;
- *       compras y reembolsos solo COMPRADOR; {@code /api/reportes/**} solo ADMIN.</li>
+ *   <li>Rutas por rol (sin token responde 401; con token de otro rol, 403): lo que modifica un lote
+ *       solo CAMPESINO; compras, reembolsos y "mis compras" solo COMPRADOR; logistica, calidad,
+ *       reservas, autorizaciones y reportes solo ADMIN.</li>
+ *   <li>Quien actua lo dice el token (claim {@code actorId}), no el cuerpo de la peticion.</li>
  *   <li>Publicas: registro, login, catalogo y consultas (GET), Swagger y consola H2.</li>
  * </ul>
  */
@@ -51,15 +52,26 @@ public class SeguridadConfig {
                 // La consola H2 se muestra dentro de un iframe del mismo sitio.
                 .headers(cabeceras -> cabeceras.frameOptions(marco -> marco.sameOrigin()))
                 .authorizeHttpRequests(rutas -> rutas
-                        // VENDEDOR: solo el campesino publica y administra sus lotes
+                        // CAMPESINO (vendedor): registra, publica y administra SUS lotes
                         .requestMatchers(HttpMethod.POST, "/api/lotes", "/api/lotes/*/publicar",
-                                "/api/lotes/*/desactivar", "/api/lotes/*/reactivar").hasRole(Rol.CAMPESINO.name())
+                                "/api/lotes/*/desactivar", "/api/lotes/*/reactivar", "/api/lotes/*/merma")
+                        .hasRole(Rol.CAMPESINO.name())
+                        .requestMatchers(HttpMethod.PUT, "/api/lotes/*/calidad-declarada").hasRole(Rol.CAMPESINO.name())
                         .requestMatchers(HttpMethod.DELETE, "/api/lotes/*").hasRole(Rol.CAMPESINO.name())
-                        // COMPRADOR: solo el comprador compra y pide reembolsos
+                        .requestMatchers(HttpMethod.GET, "/api/lotes/mios").hasRole(Rol.CAMPESINO.name())
+                        // COMPRADOR: compra, pide reembolsos y consulta SUS compras
                         .requestMatchers(HttpMethod.POST, "/api/compras", "/api/compras/*/reembolso")
                         .hasRole(Rol.COMPRADOR.name())
-                        // ADMIN: reportes
-                        .requestMatchers("/api/reportes/**").hasRole(Rol.ADMIN.name())
+                        .requestMatchers(HttpMethod.GET, "/api/compras/mias").hasRole(Rol.COMPRADOR.name())
+                        // ADMIN (operador de la plataforma): logistica, calidad, reservas, autorizaciones y reportes
+                        .requestMatchers(HttpMethod.POST, "/api/lotes/*/ingresos", "/api/lotes/*/despachos/**",
+                                "/api/lotes/*/entrega", "/api/lotes/*/inspecciones", "/api/lotes/*/temperaturas",
+                                "/api/lotes/*/incidencias", "/api/lotes/*/revision/validar", "/api/lotes/*/reservas/**",
+                                "/api/campesinos/*/autorizacion")
+                        .hasRole(Rol.ADMIN.name())
+                        .requestMatchers(HttpMethod.DELETE, "/api/lotes/*/reservas/*").hasRole(Rol.ADMIN.name())
+                        .requestMatchers("/api/almacenes/**", "/api/reportes/**").hasRole(Rol.ADMIN.name())
+                        // Publico: registro, login, catalogo y consultas (GET), Swagger y consola H2
                         .anyRequest().permitAll())
                 .oauth2ResourceServer(servidor -> servidor
                         .authenticationEntryPoint(respuestas)

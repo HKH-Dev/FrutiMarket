@@ -10,14 +10,13 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Request: un comprador compra de uno o varios lotes. Mapea a {@code Lote.reservar(...)}
+ * Request: un comprador compra de uno o varios lotes. Quien compra sale del token, no de este cuerpo. Mapea a {@code Lote.reservar(...)}
  * por item, {@code Compra.agregarDetalle(...)} y {@code Compra.confirmar()}.
  * No trae precio: se toma del lote, para que el cliente no pueda fijarlo.
  *
- * @param compradorId quien compra; la compra no existe sin comprador.
  * @param items       lineas de la compra; vacia no se puede confirmar (INV-COMPRA-VACIA).
  */
-public record RealizarCompraRequest(@NotNull UUID compradorId, @NotEmpty List<@Valid Item> items) {
+public record RealizarCompraRequest(@NotEmpty List<@Valid Item> items) {
 
     /**
      * @param loteId   lote del que se compra.

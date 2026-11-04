@@ -1,9 +1,13 @@
 package com.uniquindio.ecommerce.infraestructure.web;
 
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.Parameter;
+import com.uniquindio.ecommerce.infraestructure.seguridad.UsuarioActual;
 import com.uniquindio.ecommerce.application.port.in.GestionarDisponibilidadUseCase;
 import com.uniquindio.ecommerce.domain.valueobject.catalogo.Cantidad;
 import com.uniquindio.ecommerce.domain.valueobject.catalogo.Merma;
-import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.LoteId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.PedidoId;
 import com.uniquindio.ecommerce.infraestructure.web.dto.LoteRequests.MermaRequest;
@@ -26,7 +30,8 @@ import java.util.UUID;
 /** Cantidad disponible, reservas de pedidos y merma (regla 3). */
 @RestController
 @RequestMapping("/api/lotes/{id}")
-@Tag(name = "Disponibilidad", description = "Reservas, salidas y merma de un lote")
+@Tag(name = "Disponibilidad", description = "Reservas y salidas (ADMIN); merma (CAMPESINO dueno)")
+@SecurityRequirement(name = "bearerAuth")
 public class DisponibilidadController {
 
     private final GestionarDisponibilidadUseCase disponibilidad;
@@ -67,8 +72,9 @@ public class DisponibilidadController {
 
     @PostMapping("/merma")
     @Operation(summary = "Redefinir la merma esperada", description = "Solo mientras el lote esta en borrador (REGISTRADO).")
-    public ResponseEntity<Void> registrarMerma(@PathVariable UUID id, @Valid @RequestBody MermaRequest request) {
-        disponibilidad.registrarMerma(LoteId.de(id), CampesinoId.de(request.campesinoId()),
+    public ResponseEntity<Void> registrarMerma(@PathVariable UUID id, @Valid @RequestBody MermaRequest request,
+                                               @Parameter(hidden = true) @AuthenticationPrincipal Jwt token) {
+        disponibilidad.registrarMerma(LoteId.de(id), UsuarioActual.campesino(token),
                 Merma.de(request.porcentaje(), request.justificacion()));
         return ResponseEntity.noContent().build();
     }
