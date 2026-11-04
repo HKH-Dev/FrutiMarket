@@ -21,6 +21,7 @@ public record EventoDominio(Tipo tipo, String agregadoId, String detalle, Instan
         LOTE_PUESTO_EN_REVISION,
         LOTE_VALIDADO,
         LOTE_ENTREGADO,
-        COMPRA_CONFIRMADA
+        COMPRA_CONFIRMADA,
+        COMPRA_REEMBOLSADA
     }
 }

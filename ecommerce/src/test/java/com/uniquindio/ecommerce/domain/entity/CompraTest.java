@@ -72,11 +72,66 @@ class CompraTest {
         compra.agregarDetalle(detalle("1", "3000"));
 
         // Act
-        ReglaDeNegocioVioladaException excepcion = assertThrows(ReglaDeNegocioVioladaException.class, compra::reembolsar);
+        ReglaDeNegocioVioladaException excepcion = assertThrows(ReglaDeNegocioVioladaException.class,
+                () -> compra.reembolsar(compra.getCompradorId(), compra.getFecha()));
 
         // Assert
         assertEquals("INV-COMPRA-REEMBOLSO", excepcion.codigoRegla());
         assertEquals(EstadoCompra.PENDIENTE, compra.getEstado());
+    }
+
+    // ---------- Reglas 19 y 20: reembolso ----------
+
+    private static Compra compraCompletada(CompradorId comprador, Instant fecha) {
+        Compra compra = Compra.builder().compradorId(comprador).fecha(fecha).build();
+        compra.agregarDetalle(detalle("2", "3000"));
+        compra.confirmar();
+        return compra;
+    }
+
+    @Test
+    void elCompradorPuedeReembolsarDentroDelPlazo() {
+        // Arrange
+        CompradorId comprador = CompradorId.nuevo();
+        Instant fecha = Instant.parse("2026-11-01T10:00:00Z");
+        Compra compra = compraCompletada(comprador, fecha);
+
+        // Act: justo en el ultimo instante del plazo de 3 dias
+        compra.reembolsar(comprador, fecha.plus(Compra.PLAZO_REEMBOLSO));
+
+        // Assert
+        assertEquals(EstadoCompra.REEMBOLSADA, compra.getEstado());
+    }
+
+    @Test
+    void reembolsarFueraDelPlazoLanzaR20YLaCompraSigueCompletada() {
+        // Arrange
+        CompradorId comprador = CompradorId.nuevo();
+        Instant fecha = Instant.parse("2026-11-01T10:00:00Z");
+        Compra compra = compraCompletada(comprador, fecha);
+
+        // Act
+        ReglaDeNegocioVioladaException excepcion = assertThrows(ReglaDeNegocioVioladaException.class,
+                () -> compra.reembolsar(comprador, fecha.plus(Compra.PLAZO_REEMBOLSO).plusSeconds(1)));
+
+        // Assert
+        assertEquals("R20", excepcion.codigoRegla());
+        assertEquals(EstadoCompra.COMPLETADA, compra.getEstado());
+    }
+
+    @Test
+    void otroCompradorNoPuedeReembolsarLaCompraLanzaR19() {
+        // Arrange
+        Instant fecha = Instant.parse("2026-11-01T10:00:00Z");
+        Compra compra = compraCompletada(CompradorId.nuevo(), fecha);
+
+        // Act
+        ReglaDeNegocioVioladaException excepcion = assertThrows(ReglaDeNegocioVioladaException.class,
+                () -> compra.reembolsar(CompradorId.nuevo(), fecha));
+
+        // Assert
+        assertEquals("R19", excepcion.codigoRegla());
+        assertEquals(EstadoCompra.COMPLETADA, compra.getEstado());
     }
 
     // ---------- Invariante INV-COMPRA-TOTAL ----------
