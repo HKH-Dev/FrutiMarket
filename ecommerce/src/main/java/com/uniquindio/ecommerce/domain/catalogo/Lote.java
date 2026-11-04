@@ -457,6 +457,12 @@ public class Lote {
         return diasParaVencer(momento) < otro.diasParaVencer(momento);
     }
 
+    /** Regla 9: para despachar, el lote tiene que estar guardado en algun almacenamiento. */
+    public AlmacenId exigirAlmacenActual() {
+        return almacenActual().orElseThrow(() -> new ReglaDeNegocioVioladaException("R9",
+                "El lote " + codigo + " no esta en ningun almacenamiento."));
+    }
+
     public boolean tieneReservasActivas() {
         return !reservas.isEmpty();
     }

@@ -42,6 +42,12 @@ public class Campesino {
         this.escalaProduccion = nuevaEscala;
     }
 
+    /** Regla 1: solo un campesino autorizado por la plataforma puede ofrecer lotes. */
+    public void exigirAutorizacionParaPublicar() {
+        ReglaDeNegocioVioladaException.validar(autorizadoParaPublicar, "R1",
+                "El campesino " + nombre + " no esta autorizado para publicar en la plataforma.");
+    }
+
     public boolean estaAutorizadoParaPublicar() { return autorizadoParaPublicar; }
     public CampesinoId getId() { return id; }
     public String getNombre() { return nombre; }

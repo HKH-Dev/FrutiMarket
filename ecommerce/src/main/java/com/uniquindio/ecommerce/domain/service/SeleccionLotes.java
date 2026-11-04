@@ -1,5 +1,6 @@
 package com.uniquindio.ecommerce.domain.service;
 
+import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 
 import java.time.Instant;
@@ -39,6 +40,13 @@ public final class SeleccionLotes {
                 .filter(otro -> !otro.equals(loteAElegir))
                 .filter(otro -> otro.tipoCultivo() == loteAElegir.tipoCultivo())
                 .noneMatch(otro -> otro.tieneMasPrioridadDeDespachoQue(loteAElegir, momento));
+    }
+
+    /** Regla 16 como exigencia: lanza la excepcion indicando que lote debe salir primero. */
+    public static void exigirPrioridadDeDespacho(Lote loteAElegir, List<Lote> candidatos, Instant momento) {
+        ReglaDeNegocioVioladaException.validar(respetaPrioridadDeDespacho(loteAElegir, candidatos, momento), "R16",
+                "Hay otro lote del mismo cultivo que vence antes ("
+                        + ordenDeDespacho(candidatos, momento).get(0).codigo() + ") y debe salir primero.");
     }
 
     private static Comparator<Lote> comparadorComprador(Instant momento) {
