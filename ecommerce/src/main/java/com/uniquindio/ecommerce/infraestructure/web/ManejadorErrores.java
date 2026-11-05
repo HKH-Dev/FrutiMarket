@@ -3,7 +3,6 @@ package com.uniquindio.ecommerce.infraestructure.web;
 import com.uniquindio.ecommerce.domain.exception.RecursoNoEncontradoException;
 import com.uniquindio.ecommerce.domain.exception.ReglaDeNegocioVioladaException;
 import org.slf4j.Logger;
-import java.util.Set;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,6 +23,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Convierte las excepciones en respuestas RFC 9457 ({@code application/problem+json}).

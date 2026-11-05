@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { mensajeDeError } from '../../core/errores';
 
-/** Inicio de sesion. Usuarios de demostracion: admin, campesino, comprador. */
+/** Inicio de sesion por correo. Usuarios de demostracion: admin, campesino y comprador @frutimarket.com. */
 @Component({
   selector: 'app-login',
   imports: [ReactiveFormsModule],
@@ -19,7 +19,7 @@ export class Login {
   readonly volver = input<string>();
 
   protected readonly formulario = inject(FormBuilder).nonNullable.group({
-    usuario: ['', Validators.required],
+    correo: ['', [Validators.required, Validators.email]],
     clave: ['', Validators.required],
   });
   protected readonly enviando = signal(false);
@@ -30,10 +30,10 @@ export class Login {
       this.formulario.markAllAsTouched();
       return;
     }
-    const { usuario, clave } = this.formulario.getRawValue();
+    const { correo, clave } = this.formulario.getRawValue();
     this.enviando.set(true);
     this.error.set(null);
-    this.auth.iniciarSesion(usuario, clave).subscribe({
+    this.auth.iniciarSesion(correo, clave).subscribe({
       next: () => this.router.navigateByUrl(this.volver() ?? (this.auth.esAdmin() ? '/reportes' : '/')),
       error: (e) => {
         this.error.set(mensajeDeError(e));
