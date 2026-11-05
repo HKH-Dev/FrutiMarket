@@ -238,6 +238,24 @@ class ApiRestTest {
     }
 
     @Test
+    void buscarEnElCatalogoDevuelvePaginaConTotales() throws Exception {
+        // data.sql trae lotes publicados de mango, mora, platano y cafe
+        mvc.perform(get("/api/lotes/buscar").param("texto", "mango").param("pagina", "0").param("tamano", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contenido.length()").value(1))
+                .andExpect(jsonPath("$.contenido[0].producto").value("Mango Tommy"))
+                .andExpect(jsonPath("$.tamano").value(1))
+                .andExpect(jsonPath("$.totalElementos").isNumber())
+                .andExpect(jsonPath("$.totalPaginas").isNumber());
+    }
+
+    @Test
+    void buscarConTamanoDePaginaInvalidoDevuelve400() throws Exception {
+        mvc.perform(get("/api/lotes/buscar").param("tamano", "500")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/lotes/buscar").param("pagina", "-1")).andExpect(status().isBadRequest());
+    }
+
+    @Test
     void productoInexistenteDevuelve404() throws Exception {
         mvc.perform(get("/api/productos/" + UUID.randomUUID())).andExpect(status().isNotFound());
     }

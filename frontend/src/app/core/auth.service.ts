@@ -35,13 +35,13 @@ export class AuthService {
     return sesion?.token ?? null;
   }
 
-  iniciarSesion(usuario: string, clave: string): Observable<Token> {
-    return this.http.post<Token>('/api/auth/login', { usuario, clave }).pipe(
+  iniciarSesion(correo: string, clave: string): Observable<Token> {
+    return this.http.post<Token>('/api/auth/login', { correo, clave }).pipe(
       tap((respuesta) => {
         const sesion: Sesion = {
-          usuario,
+          usuario: respuesta.correo,
           token: respuesta.token,
-          roles: respuesta.roles,
+          roles: [respuesta.rol],
           expiraEn: respuesta.expiraEn,
         };
         guardar(sesion);

@@ -76,8 +76,9 @@ export interface ProductoVendido {
 export interface Token {
   token: string;
   tipo: string;
+  correo: string;
+  rol: string;
   expiraEn: string;
-  roles: string[];
 }
 
 /** Error de la API en formato RFC 9457 (ProblemDetail), como lo arma ManejadorErrores. */

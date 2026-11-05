@@ -1,48 +1,122 @@
 # FrutiMarket
-Proyeto semestre 2026-02 asignatura programacion avanzada
 
-Backend Spring Boot 4 (Java 21) en la carpeta `ecommerce/`, con arquitectura hexagonal,
-persistencia JPA (H2 o MariaDB) y API REST documentada con Swagger.
+**Nicho:** comercio directo de productos del campo del Quindío. Los campesinos publican **lotes**
+de lo que cosechan (con su calidad, precio de finca y trazabilidad desde la finca) y los compradores
+(hogares, tiendas, restaurantes y mayoristas) los compran sin intermediarios. La plataforma
+controla la disponibilidad, la vida útil, la cadena de frío y la logística hasta la entrega.
 
-- Swagger: http://localhost:8080/swagger-ui.html
-- Consola H2: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:ecommercedb'
+Proyecto del semestre 2026-02, asignatura Programación Avanzada — Universidad del Quindío.
 
-Ahora usamos **H2**; En ambos casos el usuario es `ecommerce_app`
+## Integrantes
 
-## Cómo correrlo
+| Nombre | Usuario de GitHub |
+|---|---|
+| _(completar)_ | `hkh-dev` / `HKH-Dev` |
+| _(completar)_ | `mariajuanita00` |
+| _(completar)_ | `Marlonceron6` |
+
+## Tecnologías
+
+Backend Spring Boot 4 (Java 21) en `ecommerce/`, con arquitectura hexagonal (dominio sin Spring ni
+JPA), persistencia JPA con H2 (desarrollo) o MariaDB con Flyway, seguridad JWT con roles y API REST
+documentada con Swagger. El frontend Angular de `frontend/` es de la Entrega 3.
+
+## Cómo ejecutarlo
+
+Requisitos: **Java 21**. No hay que instalar base de datos: por defecto usa **H2** en memoria con
+datos de ejemplo.
 
 | | Linux | Windows (PowerShell) |
 |---|---|---|
 | Backend con H2 | `cd ecommerce` y `./gradlew bootRun` | `cd ecommerce` y `.\gradlew.bat bootRun` |
 | Backend con MariaDB | `./gradlew bootRun --args='--spring.profiles.active=mariadb'` | `.\gradlew.bat bootRun --args="--spring.profiles.active=mariadb"` |
-| Frontend | `cd frontend`, `npm install` y `npm start` | lo mismo |
 | Pruebas backend | `./gradlew test` | `.\gradlew.bat test` |
-| Pruebas frontend | `npm test -- --watch=false` | lo mismo |
+| Frontend (Entrega 3) | `cd frontend`, `npm install` y `npm start` | lo mismo |
 
-- Frontend: http://localhost:4200 (Angular 21; las llamadas a `/api` van al backend por el proxy)
-- Instalación paso a paso: [docs/GUIA-LINUX.md](docs/GUIA-LINUX.md) · [docs/GUIA-WINDOWS.md](docs/GUIA-WINDOWS.md)
+- **Swagger:** http://localhost:8080/swagger-ui.html
+- **Consola H2:** http://localhost:8080/h2-console — JDBC URL `jdbc:h2:mem:ecommercedb`, usuario y
+  contraseña = `DB_USER` y `DB_PASSWORD` de `ecommerce/.env` (sin `.env`: `sa` sin contraseña).
+- Instalación paso a paso (Node, MariaDB, `.env`): [docs/GUIA-LINUX.md](docs/GUIA-LINUX.md) ·
+  [docs/GUIA-WINDOWS.md](docs/GUIA-WINDOWS.md)
 
-## MariaDB y Flyway
+## Usuarios de prueba
 
-Con MariaDB el esquema lo versiona **Flyway** (`ecommerce/src/main/resources/db/`), no Hibernate:
-`db/migration` tiene la estructura y `db/datos-ejemplo` el catálogo inicial. Hibernate solo valida
-(`ddl-auto=validate`). **Un script ya aplicado no se edita:** cada cambio de tablas va en un archivo
-nuevo `V2__descripcion.sql`, `V3__...`, en el mismo commit que el cambio de la entidad. Requiere
-MariaDB 10.7 o superior.
+Se crean al arrancar (claves cifradas con BCrypt). Las claves se pueden cambiar en `.env`.
+
+| Correo | Contraseña | Rol | Perfil vinculado |
+|---|---|---|---|
+| `admin@frutimarket.com` | `admin123` | ADMIN | — |
+| `campesino@frutimarket.com` | `campesino123` | CAMPESINO (vendedor) | María Gómez, autorizada para publicar |
+| `comprador@frutimarket.com` | `comprador123` | COMPRADOR | Restaurante El Solar (Armenia) |
+
+Cualquier persona puede registrarse como COMPRADOR o CAMPESINO en `POST /api/auth/registro`. Un
+campesino nuevo no puede ofrecer lotes hasta que un ADMIN lo autorice (regla 1).
 
 ## Seguridad (JWT)
 
-La ruta `GET /api/reportes/productos-mas-vendidos` solo la puede usar un **ADMIN**; el resto de la API
-sigue abierta mientras no exista el registro de usuarios. Para obtener un token:
-`POST /api/auth/login` con uno de los usuarios de demostración (las claves se cambian en `.env`):
+- `POST /api/auth/login` devuelve un token JWT con el **correo**, el **rol** y la **fecha de
+  vencimiento**. La clave secreta y la duración están en `application.properties` (`JWT_SECRET` en
+  `.env`), no en el código.
+- **Quién actúa lo dice el token**, no el cuerpo de la petición: cada usuario está vinculado a su
+  campesino o comprador (claim `actorId`), así nadie puede actuar en nombre de otro.
+- **Sin token → 401; token con otro rol → 403.**
+- En Swagger: ejecute el login, copie el `token`, pulse **Authorize** y péguelo.
 
-| Usuario | Clave por defecto | Rol |
+## Endpoints principales
+
+| Método y ruta | Rol | Caso de uso |
 |---|---|---|
-| `admin` | `admin123` | ADMIN |
-| `campesino` | `campesino123` | CAMPESINO |
-| `comprador` | `comprador123` | COMPRADOR |
+| `POST /api/auth/registro` | público | Registrar usuario (crea su perfil de campesino o comprador) |
+| `POST /api/auth/login` | público | Iniciar sesión (token JWT) |
+| `GET /api/productos` | público | Consultar catálogo de productos |
+| `GET /api/lotes/buscar?texto=&tipoCultivo=&precioMaximo=&pagina=&tamano=` | público | **Listado paginado** con búsqueda y filtros |
+| `GET /api/lotes?productoId=` · `GET /api/lotes/{id}/trazabilidad` | público | Consultar lotes y su trazabilidad |
+| `POST /api/lotes` | CAMPESINO | Registrar lote |
+| `POST /api/lotes/{id}/publicar` · `/desactivar` · `/reactivar` | CAMPESINO dueño | Publicar / gestionar lote |
+| `DELETE /api/lotes/{id}` | CAMPESINO dueño | Retirar lote (**borrado lógico**: pasa a RETIRADO) |
+| `GET /api/lotes/mios` | CAMPESINO | Mis lotes |
+| `POST /api/compras` | COMPRADOR | Realizar compra |
+| `GET /api/compras/mias` | COMPRADOR | Mis compras |
+| `POST /api/compras/{id}/reembolso` | COMPRADOR dueño | Solicitar reembolso (reglas 19 y 20) |
+| `POST /api/campesinos/{id}/autorizacion` | ADMIN | Autorizar campesino (regla 1) |
+| `GET /api/reportes/productos-mas-vendidos` | ADMIN | **Ranking** con JOIN, GROUP BY y SUM |
+| `/api/lotes/{id}/ingresos`, `/despachos/**`, `/entrega`, `/inspecciones`, `/temperaturas`, `/incidencias` | ADMIN | Logística y calidad |
 
-En Swagger: ejecute el login, copie el `token`, pulse **Authorize** y péguelo.
+Errores en JSON (`application/problem+json`): **400** datos inválidos (con `errores` por campo),
+**401/403** seguridad, **404** no existe, **409** conflicto de datos, **422** regla de negocio rota
+(con el código de la regla en `regla`, por ejemplo `"R3"`).
+
+## Flujo de punta a punta en Swagger
+
+1. **Login como vendedor** (`campesino@frutimarket.com`) → Authorize.
+2. `POST /api/lotes` registra un lote de mango y `POST /api/lotes/{id}/publicar` lo publica.
+3. **Login como comprador** (`comprador@frutimarket.com`) → Authorize.
+4. `GET /api/lotes/buscar?texto=mango` lo encuentra; `POST /api/compras` lo compra.
+5. `GET /api/compras/mias` muestra la compra; `POST /api/compras/{id}/reembolso` la reembolsa.
+6. Repetir el reembolso → **422** `INV-COMPRA-REEMBOLSO`. Comprar más de lo disponible → **422** `R3`.
+7. **Login como ADMIN** → `GET /api/reportes/productos-mas-vendidos`.
+
+Este mismo flujo está automatizado en `ApiRestTest.flujoCompletoDesdeElRegistroHastaElReembolso`.
+
+## Correcciones de la Entrega 1
+
+| Observación que nos dieron | Qué cambiamos | Dónde se ve (archivo o rama) |
+|---|---|---|
+| _(completar con la observación del profesor)_ | Las reglas R1, R9, R13, R15, R16, INV-COMPRADOR e INV-CODIGO estaban dentro de los casos de uso; ahora las exige el dominio | `Campesino.exigirAutorizacionParaPublicar`, `PuntoAlmacenamiento.exigirCobertura`, `SeleccionLotes.exigirPrioridadDeDespacho`, `PoliticaCodigoLote`; rama `feature/reglas-en-dominio` |
+| _(completar)_ | El reembolso no tenía plazo ni dueño; ahora el agregado `Compra` exige R19 (solo su comprador) y R20 (3 días) | `Compra.reembolsar`; rama `feature/reembolso-compras` |
+| _(completar)_ | | |
+
+## Cómo cumple los mínimos de la Entrega 2
+
+| Mínimo | Dónde |
+|---|---|
+| Dominio: ≥3 entidades, ≥5 Value Objects, 2 agregados, excepción de dominio | Entidades `Campesino`, `Comprador`, `Producto`, `PuntoAlmacenamiento`; agregados `Lote` y `Compra`; Value Objects `Cantidad`, `PrecioFinca`, `Merma`, `Calidad`, `FichaTrazabilidad`, `TemporadaCosecha` e ids tipados; `ReglaDeNegocioVioladaException`. `domain/` no importa Spring ni JPA |
+| ≥6 casos de uso (2 comprador, 2 vendedor) | Vendedor: `RegistrarLote`, `PublicarLote`, `GestionarDisponibilidad` (merma). Comprador: `RealizarCompra`, `SolicitarReembolso`, `ConsultarCompras`. Además `ConsultarLote`, `GestionarLogistica`, `ControlarCalidad`, `AutorizarCampesino`, `ConsultarCatalogo`, `ConsultarReportes` |
+| API REST | Controllers delgados en `infraestructure/web`, DTO con `@Valid`, mappers DTO ↔ dominio (`aComando`, `desde`), `ManejadorErrores` |
+| Persistencia | Entidades JPA separadas en `persistence/jpa/entity` con mappers en `persistence/jpa/mapper`; datos de prueba en `data.sql` (H2) y Flyway (MariaDB); borrado lógico (`RETIRADO`, `activo`) |
+| Consultas | Listado paginado JPQL con parámetros con nombre: `LoteJpaRepository.buscarDisponibles`; ranking JOIN + GROUP BY + SUM: `CompraJpaRepository.rankingProductosVendidos` |
+| Seguridad | Registro y login, BCrypt, clave y duración en `application.properties`, 3 roles, rutas por rol en `SeguridadConfig` |
+| Pruebas (106, todas en verde) | Dominio: `LoteTest`, `CompraTest`, `CantidadTest`... · Casos de uso con repositorios en memoria: `RealizarCompraServiceTest`, `SolicitarReembolsoServiceTest`... · Controller `@WebMvcTest`: `LoteControllerPublicarTest` · Repositorio: `LoteRepositoryDataJpaTest`, `BusquedaLotesDataJpaTest` |
 
 ## Pruebas avanzadas
 

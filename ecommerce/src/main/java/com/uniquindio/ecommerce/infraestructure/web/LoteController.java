@@ -1,5 +1,12 @@
 package com.uniquindio.ecommerce.infraestructure.web;
 
+import java.math.BigDecimal;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
+import com.uniquindio.ecommerce.infraestructure.web.dto.PaginaResponse;
+import com.uniquindio.ecommerce.domain.valueobject.origenycalidad.TipoCultivo;
+import com.uniquindio.ecommerce.domain.consulta.BusquedaLotes;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -69,6 +76,22 @@ public class LoteController {
     public List<LoteResumenResponse> disponiblesDe(@RequestParam UUID productoId) {
         return consultarLote.consultarDisponiblesDe(ProductoId.de(productoId)).stream()
                 .map(LoteResumenResponse::desde).toList();
+    }
+
+    @GetMapping("/buscar")
+    @Operation(summary = "Buscar en el catalogo (paginado)",
+            description = "Lotes publicados con cantidad disponible. Busca el texto en el nombre del producto y en el "
+                    + "codigo del lote, con filtros opcionales por tipo de cultivo y precio maximo. Los lotes retirados "
+                    + "(borrado logico) nunca aparecen. Ordena por publicacion mas reciente.")
+    public PaginaResponse<LoteResumenResponse> buscar(
+            @RequestParam(required = false) @Parameter(example = "mango") String texto,
+            @RequestParam(required = false) TipoCultivo tipoCultivo,
+            @RequestParam(required = false) @Positive @Parameter(example = "5000") BigDecimal precioMaximo,
+            @RequestParam(defaultValue = "0") @Min(0) int pagina,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int tamano) {
+        return PaginaResponse.desde(
+                consultarLote.buscarDisponibles(new BusquedaLotes(texto, tipoCultivo, precioMaximo, pagina, tamano)),
+                LoteResumenResponse::desde);
     }
 
     @GetMapping("/mejor")

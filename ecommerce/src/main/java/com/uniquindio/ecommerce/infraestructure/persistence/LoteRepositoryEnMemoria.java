@@ -1,8 +1,11 @@
 package com.uniquindio.ecommerce.infraestructure.persistence;
 
+import java.util.Locale;
+import java.util.Comparator;
+import java.time.Instant;
+import com.uniquindio.ecommerce.domain.consulta.Pagina;
+import com.uniquindio.ecommerce.domain.consulta.BusquedaLotes;
 import com.uniquindio.ecommerce.domain.catalogo.EstadoLote;
-import com.uniquindio.ecommerce.domain.repository.Pagina;
-
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.AlmacenId;
@@ -51,6 +54,25 @@ public class LoteRepositoryEnMemoria implements LoteRepository {
     }
 
     @Override
+    public Pagina<Lote> buscarDisponibles(BusquedaLotes criterios) {
+        String texto = criterios.texto().toLowerCase(Locale.ROOT);
+        List<Lote> todos = lotes.values().stream()
+                .filter(Lote::estaDisponible)
+                .filter(lote -> lote.nombreProducto().toLowerCase(Locale.ROOT).contains(texto)
+                        || lote.codigo().toLowerCase(Locale.ROOT).contains(texto))
+                .filter(lote -> criterios.tipoCultivo() == null || lote.tipoCultivo() == criterios.tipoCultivo())
+                .filter(lote -> criterios.precioMaximo() == null || (lote.precioFinca() != null
+                        && lote.precioFinca().valorPorUnidad().compareTo(criterios.precioMaximo()) <= 0))
+                .sorted(Comparator.comparing((Lote lote) -> lote.fechaPublicacion().orElse(Instant.MIN)).reversed()
+                        .thenComparing(Lote::codigo))
+                .toList();
+        int desde = Math.min(criterios.pagina() * criterios.tamano(), todos.size());
+        int hasta = Math.min(desde + criterios.tamano(), todos.size());
+        int totalPaginas = (int) Math.ceil((double) todos.size() / criterios.tamano());
+        return new Pagina<>(todos.subList(desde, hasta), criterios.pagina(), criterios.tamano(), todos.size(), totalPaginas);
+    }
+
+    @Override
     public List<Lote> lotesEnAlmacen(AlmacenId almacen, TipoCultivo tipoCultivo) {
         return lotes.values().stream()
                 .filter(lote -> lote.estado() == EstadoLote.EN_ACOPIO)
@@ -65,22 +87,5 @@ public class LoteRepositoryEnMemoria implements LoteRepository {
                 .filter(lote -> lote.estaVencido(hoy))
                 .filter(lote -> !lote.estado().esTerminal())
                 .toList();
-    }
-    @Override
-    public Pagina<Lote> buscarEnCatalogo(String texto, TipoCultivo tipoCultivo, int pagina, int tamano) {
-        String buscado = texto == null ? "" : texto.trim().toLowerCase();
-        List<Lote> coincidencias = lotes.values().stream()
-                .filter(lote -> lote.estado() == EstadoLote.PUBLICADO)
-                .filter(Lote::estaDisponible)
-                .filter(lote -> tipoCultivo == null || lote.tipoCultivo() == tipoCultivo)
-                .filter(lote -> lote.nombreProducto().toLowerCase().contains(buscado)
-                        || lote.codigo().toLowerCase().contains(buscado))
-                .sorted(java.util.Comparator.comparing((Lote lote) -> lote.nombreProducto().toLowerCase())
-                        .thenComparing(Lote::codigo))
-                .toList();
-        int desde = Math.min(pagina * tamano, coincidencias.size());
-        int hasta = Math.min(desde + tamano, coincidencias.size());
-        int totalPaginas = (int) Math.ceil(coincidencias.size() / (double) tamano);
-        return new Pagina<>(coincidencias.subList(desde, hasta), pagina, tamano, coincidencias.size(), totalPaginas);
     }
 }
