@@ -2,6 +2,7 @@ package com.uniquindio.ecommerce.infraestructure.persistence.jpa;
 
 import com.uniquindio.ecommerce.domain.repository.ReporteVentasRepository;
 import com.uniquindio.ecommerce.domain.valueobject.EstadoCompra;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.ProductoId;
 import com.uniquindio.ecommerce.infraestructure.persistence.jpa.springdata.CompraJpaRepository;
 import org.springframework.data.domain.Limit;
@@ -25,6 +26,14 @@ public class ReporteVentasRepositoryJpa implements ReporteVentasRepository {
         return jpa.rankingProductosVendidos(EstadoCompra.COMPLETADA, Limit.of(limite)).stream()
                 .map(fila -> new ProductoVendido(ProductoId.de(fila.productoId()), fila.nombre(),
                         fila.cantidadVendida(), fila.unidad(), fila.numeroCompras()))
+                .toList();
+    }
+
+    @Override
+    public List<VentaDeCampesino> ventasDelCampesino(CampesinoId campesino) {
+        return jpa.ventasDelCampesino(EstadoCompra.COMPLETADA, campesino.valor()).stream()
+                .map(fila -> new VentaDeCampesino(ProductoId.de(fila.productoId()), fila.nombre(), fila.cantidadVendida(),
+                        fila.unidad(), fila.ingresos(), fila.numeroCompras()))
                 .toList();
     }
 }

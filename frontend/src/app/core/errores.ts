@@ -4,20 +4,20 @@ import { Problema } from './modelos';
 /** Convierte cualquier error HTTP en un mensaje legible para el usuario. */
 export function mensajeDeError(error: unknown): string {
   if (!(error instanceof HttpErrorResponse)) {
-    return 'Ocurrio un error inesperado.';
+    return 'Ocurrió un error inesperado. Inténtalo de nuevo.';
   }
   if (error.status === 0) {
-    return 'No hay conexion con el servidor. ¿Esta corriendo el backend en el puerto 8080?';
+    return 'No hay conexión con el servidor. Revisa tu red e inténtalo de nuevo.';
   }
   const problema = error.error as Problema | null;
   if (problema?.detail) {
-    return problema.regla ? `${problema.detail} (regla ${problema.regla})` : problema.detail;
+    return problema.detail;
   }
   if (error.status === 401) {
-    return 'Debe iniciar sesion.';
+    return 'Inicia sesión para continuar.';
   }
   if (error.status === 403) {
-    return 'Su usuario no tiene permiso para ver esto.';
+    return 'Tu usuario no tiene permiso para esta acción.';
   }
   return `Error ${error.status}`;
 }

@@ -35,6 +35,8 @@ public interface ConsultarLoteUseCase {
     /** Catalogo paginado con busqueda por texto y filtros (tipo de cultivo, precio maximo). */
     Pagina<VistaLote> buscarDisponibles(BusquedaLotes criterios);
 
+    VistaLote consultarResumen(LoteId lote);
+
     List<VistaLote> consultarPorCampesino(CampesinoId campesino);
 
     /** Regla 16: lotes de un almacenamiento en el orden en que deben despacharse. */
@@ -53,6 +55,7 @@ public interface ConsultarLoteUseCase {
     }
 
     record VistaLote(LoteId lote,
+                     ProductoId productoId,
                      String codigo,
                      String producto,
                      CampesinoId campesino,

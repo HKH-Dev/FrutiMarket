@@ -6,6 +6,7 @@ import com.uniquindio.ecommerce.domain.consulta.BusquedaLotes;
 import com.uniquindio.ecommerce.application.port.in.ConsultarLoteUseCase;
 import com.uniquindio.ecommerce.application.port.out.PublicadorEventos;
 import com.uniquindio.ecommerce.application.port.out.Reloj;
+import com.uniquindio.ecommerce.domain.exception.RecursoNoEncontradoException;
 import com.uniquindio.ecommerce.domain.catalogo.Lote;
 import com.uniquindio.ecommerce.domain.repository.LoteRepository;
 import com.uniquindio.ecommerce.domain.service.SeleccionLotes;
@@ -85,8 +86,13 @@ public class ConsultarLoteService extends ServicioDeAplicacion implements Consul
         return lotes.stream().map(lote -> aVista(lote, ahora)).toList();
     }
 
+    @Override
+    public VistaLote consultarResumen(LoteId id) {
+        return aVista(loteRepository.obtenerLote(id).orElseThrow(() -> new RecursoNoEncontradoException("Lote", id)), reloj.ahora());
+    }
+
     private VistaLote aVista(Lote lote, Instant ahora) {
-        return new VistaLote(lote.id(), lote.codigo(), lote.nombreProducto(), lote.campesinoResponsable(),
+        return new VistaLote(lote.id(), lote.producto(), lote.codigo(), lote.nombreProducto(), lote.campesinoResponsable(),
                 lote.cantidadDisponible(), lote.precioFinca(), lote.puntajeCalidad(),
                 lote.diasParaVencer(ahora), lote.estado());
     }

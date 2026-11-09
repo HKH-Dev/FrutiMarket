@@ -116,6 +116,12 @@ public class LoteController {
                 .map(LoteResumenResponse::desde).toList();
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Resumen de un lote", description = "Precio, cantidad disponible, calidad y estado.")
+    public LoteResumenResponse resumen(@PathVariable UUID id) {
+        return LoteResumenResponse.desde(consultarLote.consultarResumen(LoteId.de(id)));
+    }
+
     @GetMapping("/{id}/trazabilidad")
     @Operation(summary = "Trazabilidad del lote", description = "Origen, calidad y cadena de custodia completa (regla 8).")
     public TrazabilidadResponse trazabilidad(@PathVariable UUID id) {

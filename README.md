@@ -164,3 +164,26 @@ sola clase y reemplaza lo demás con dobles: es rápida y dice exactamente dónd
 detecta fallas de conexión entre capas. La de integración sí: por ejemplo, comprueba que si el segundo
 ítem de una compra falla, la transacción deshace también el primero. Conviene para los flujos
 importantes de punta a punta, y dejar las reglas en detalle a las pruebas unitarias, que son más baratas.
+
+## Entrega 3: producto final
+
+Ejecutar todo con Docker: ver [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md). La tienda queda en `http://localhost:8088`.
+
+Cada perfil tiene su propia experiencia:
+
+| Perfil | Entra a | Puede |
+|---|---|---|
+| Visitante y comprador | Tienda (`/`) | Catálogo, trazabilidad, carrito, pago simulado, compras y reembolsos, favoritos, cupones, recomendaciones, chat |
+| Campesino | Mi finca (`/finca`) | Registrar, publicar, pausar y retirar lotes; ver ventas; responder mensajes |
+| Administrador | Consola (`/consola`) | Ventas y ranking, autorizar campesinos, campañas de temporada, cupones personalizados |
+
+Funcionalidades adicionales:
+
+| Funcionalidad | Endpoints |
+|---|---|
+| Descuentos por temporada | `GET /api/ofertas/vigentes`, `GET/POST /api/ofertas`, `POST /api/ofertas/{id}/desactivar` |
+| Recomendaciones | `GET /api/recomendaciones` |
+| Chat en vivo | STOMP en `/ws`; `GET/POST /api/chat/conversaciones`, `GET/POST /api/chat/conversaciones/{id}/mensajes` |
+| Pagos simulados | `POST /api/pagos/cotizacion`, `POST /api/pagos/checkout` (tarjeta terminada en 0000: rechazo) |
+| Favoritos | `GET /api/favoritos`, `PUT/DELETE /api/favoritos/{productoId}` |
+| Cupones personalizados | `GET /api/cupones/mios`, `GET/POST /api/cupones` (cupón de prueba del comprador demo: `BIENVENIDA10`) |

@@ -21,4 +21,9 @@ public class CampesinoRepositoryEnMemoria implements CampesinoRepository {
     public Optional<Campesino> obtenerCampesino(CampesinoId id) {
         return Optional.ofNullable(campesinos.get(id));
     }
+
+    @Override
+    public java.util.List<Campesino> todos() {
+        return java.util.List.copyOf(campesinos.values());
+    }
 }

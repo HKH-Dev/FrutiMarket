@@ -22,6 +22,11 @@ public final class UsuarioActual {
         return CompradorId.de(actor(token, "un comprador"));
     }
 
+    /** Id del perfil del usuario, sea comprador o campesino. */
+    public static java.util.UUID actor(Jwt token) {
+        return java.util.UUID.fromString(actor(token, "un perfil de comprador o campesino"));
+    }
+
     private static String actor(Jwt token, String queSeEsperaba) {
         String actor = token == null ? null : token.getClaimAsString(EmisorTokens.CLAIM_ACTOR);
         if (actor == null) {

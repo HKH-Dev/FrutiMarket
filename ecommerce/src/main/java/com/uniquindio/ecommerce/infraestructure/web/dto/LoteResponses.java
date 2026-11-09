@@ -40,12 +40,12 @@ public final class LoteResponses {
         }
     }
 
-    public record LoteResumenResponse(UUID id, String codigo, String producto, UUID campesinoId,
+    public record LoteResumenResponse(UUID id, UUID productoId, String codigo, String producto, UUID campesinoId,
                                       BigDecimal cantidadDisponible, String unidad, BigDecimal precioPorUnidad,
                                       int puntajeCalidad, Long diasVidaUtilRestante, String estado) {
 
         public static LoteResumenResponse desde(VistaLote vista) {
-            return new LoteResumenResponse(vista.lote().valor(), vista.codigo(), vista.producto(),
+            return new LoteResumenResponse(vista.lote().valor(), vista.productoId().valor(), vista.codigo(), vista.producto(),
                     vista.campesino().valor(), vista.cantidadDisponible().valor(),
                     vista.cantidadDisponible().unidad().simbolo(),
                     vista.precio() == null ? null : vista.precio().valorPorUnidad(),

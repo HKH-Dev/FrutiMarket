@@ -46,7 +46,9 @@ class SolicitarReembolsoServiceTest {
     }
 
     private SolicitarReembolsoService servicioEn(Instant ahora) {
-        return new SolicitarReembolsoService(compras, Reloj.fijo(ahora), eventos::add);
+        return new SolicitarReembolsoService(compras, Reloj.fijo(ahora), eventos::add,
+                org.mockito.Mockito.mock(com.uniquindio.ecommerce.domain.repository.PagoRepository.class),
+                org.mockito.Mockito.mock(com.uniquindio.ecommerce.domain.repository.CuponRepository.class));
     }
 
     @Test

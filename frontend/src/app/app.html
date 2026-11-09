@@ -1,25 +1,56 @@
-<header class="barra">
-  <div class="barra-contenido">
-    <a routerLink="/" class="marca" aria-label="FrutiMarket, inicio">
-      <span class="marca-icono" aria-hidden="true">●</span> FrutiMarket
-    </a>
-    <nav aria-label="Principal">
-      <a routerLink="/" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">Catálogo</a>
-      @if (auth.esAdmin()) {
-        <a routerLink="/reportes" routerLinkActive="activo">Reportes</a>
-      }
-    </nav>
-    <div class="sesion">
-      @if (auth.autenticado()) {
-        <span class="sutil">{{ auth.usuario() }} · {{ auth.roles().join(', ') }}</span>
-        <button type="button" class="boton-texto" (click)="salir()">Salir</button>
-      } @else {
-        <a routerLink="/login" class="boton boton-pequeno">Iniciar sesión</a>
-      }
-    </div>
-  </div>
-</header>
+<ng-template #logo>
+  <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 24C5 12 13 5 27 5c1 14-7 22-18 21l-3-2Z" fill="#FFD166" /><path d="M6 26c4-8 9-13 16-17" stroke="#0A5A4A" stroke-width="2" fill="none" /></svg>
+  FrutiMarket
+</ng-template>
 
-<main class="contenido">
-  <router-outlet />
-</main>
+@if (menuPanel(); as menu) {
+  <div [class]="clasePanel()">
+    <aside class="panel-lateral">
+      <div>
+        <a routerLink="/" class="marca" aria-label="FrutiMarket, ver la tienda"><ng-container [ngTemplateOutlet]="logo" /></a>
+        <div class="perfil-rol">{{ nombrePanel() }}</div>
+      </div>
+      <nav aria-label="Principal">
+        @for (enlace of menu; track enlace.ruta) {
+          <a [routerLink]="enlace.ruta" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: !!enlace.exacto }">{{ enlace.texto }}</a>
+        }
+      </nav>
+      <div class="panel-pie sesion">
+        <span>{{ auth.usuario() }}</span>
+        <button type="button" class="boton boton-chico boton-claro" (click)="salir()">Cerrar sesión</button>
+      </div>
+    </aside>
+    <main class="panel-principal"><router-outlet /></main>
+  </div>
+} @else {
+  <header class="tienda-barra">
+    <div class="ancho">
+      <a routerLink="/" class="marca" aria-label="FrutiMarket, inicio"><ng-container [ngTemplateOutlet]="logo" /></a>
+      <nav aria-label="Principal">
+        <a routerLink="/catalogo" routerLinkActive="activo">Catálogo</a>
+        @if (auth.esComprador()) {
+          <a routerLink="/compras" routerLinkActive="activo">Mis compras</a>
+          <a routerLink="/favoritos" routerLinkActive="activo">Favoritos</a>
+          <a routerLink="/cupones" routerLinkActive="activo">Cupones</a>
+          <a routerLink="/mensajes" routerLinkActive="activo">Mensajes</a>
+        }
+      </nav>
+      <div class="sesion">
+        <a routerLink="/carrito" class="boton boton-chico">Carrito @if (tienda.cuantos()) { <span class="contador">{{ tienda.cuantos() }}</span> }</a>
+        @if (auth.autenticado()) {
+          <span class="correo">{{ auth.usuario() }}</span>
+          <button type="button" class="boton boton-chico boton-claro" (click)="salir()">Cerrar sesión</button>
+        } @else {
+          <a routerLink="/login" class="boton boton-chico boton-claro">Iniciar sesión</a>
+        }
+      </div>
+    </div>
+  </header>
+  <main><router-outlet /></main>
+  <footer class="pie">
+    <div class="ancho">
+      <span>FrutiMarket conecta fincas del Quindío con restaurantes, tiendas y hogares.</span>
+      <a routerLink="/registro" style="color: inherit">Vende tu cosecha aquí</a>
+    </div>
+  </footer>
+}

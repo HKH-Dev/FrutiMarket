@@ -30,4 +30,10 @@ public class CampesinoRepositoryJpa implements CampesinoRepository {
     public Optional<Campesino> obtenerCampesino(CampesinoId id) {
         return jpa.findById(id.valor()).map(CampesinoMapper::aDominio);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<Campesino> todos() {
+        return jpa.findAll().stream().map(CampesinoMapper::aDominio).toList();
+    }
 }

@@ -1,3 +1,6 @@
 .idea/
-# Configuracion local de Claude Code (servidores de vista previa)
+# Configuracion local del editor
 .claude/
+
+# Secretos del despliegue con Docker
+.env
