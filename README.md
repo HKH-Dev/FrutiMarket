@@ -34,8 +34,7 @@ datos de ejemplo.
 | Frontend (Entrega 3) | `cd frontend`, `npm install` y `npm start` | lo mismo |
 
 - **Swagger:** http://localhost:8080/swagger-ui.html
-- **Consola H2:** http://localhost:8080/h2-console — JDBC URL `jdbc:h2:mem:ecommercedb`, usuario y
-  contraseña = `DB_USER` y `DB_PASSWORD` de `ecommerce/.env` (sin `.env`: `sa` sin contraseña).
+
 - Instalación paso a paso (Node, MariaDB, `.env`): [docs/GUIA-LINUX.md](docs/GUIA-LINUX.md) ·
   [docs/GUIA-WINDOWS.md](docs/GUIA-WINDOWS.md)
 
