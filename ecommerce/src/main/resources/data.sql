@@ -48,7 +48,7 @@ INSERT INTO lotes (id, codigo, producto_id, nombre_producto, linea, tipo_cultivo
 ('66666666-0000-0000-0000-000000000001', 'LOT-MANGO-001', '11111111-0000-0000-0000-000000000001', 'Mango Tommy',
  'MATERIA_PRIMA', 'FRUTA', 'AMBIENTE', NULL, NULL,
  '22222222-0000-0000-0000-000000000001', '55555555-0000-0000-0000-000000000001', 'AGROECOLOGICA',
- DATE '2026-10-25', 'Cosecha manual en la finca La Esperanza, fruta madura de arbol', DATE '2026-10-25', DATE '2026-11-24',
+ DATEADD('DAY', -5, CURRENT_DATE), 'Cosecha manual en la finca La Esperanza, fruta madura de arbol', DATEADD('DAY', -5, CURRENT_DATE), DATEADD('DAY', 25, CURRENT_DATE),
  'PRIMERA', 5, FALSE,
  'KILOGRAMO', 500.000, 500.000, 3500, 0.00,
  'Sin merma prevista', FALSE, 'PUBLICADO', NULL, FALSE,
@@ -57,7 +57,7 @@ INSERT INTO lotes (id, codigo, producto_id, nombre_producto, linea, tipo_cultivo
 ('66666666-0000-0000-0000-000000000002', 'LOT-MORA-001', '11111111-0000-0000-0000-000000000002', 'Mora de castilla',
  'MATERIA_PRIMA', 'FRUTA', 'REFRIGERADO', NULL, NULL,
  '22222222-0000-0000-0000-000000000001', '55555555-0000-0000-0000-000000000002', 'ORGANICA_CERTIFICADA',
- DATE '2026-10-26', 'Mora organica certificada, cosechada al amanecer y enfriada en el acopio', DATE '2026-10-26', DATE '2026-11-05',
+ DATEADD('DAY', -4, CURRENT_DATE), 'Mora organica certificada, cosechada al amanecer y enfriada en el acopio', DATEADD('DAY', -4, CURRENT_DATE), DATEADD('DAY', 6, CURRENT_DATE),
  'EXTRA', 3, TRUE,
  'KILOGRAMO', 120.000, 120.000, 9000, 0.00,
  'Sin merma prevista', FALSE, 'PUBLICADO', '44444444-0000-0000-0000-000000000001', FALSE,
@@ -66,7 +66,7 @@ INSERT INTO lotes (id, codigo, producto_id, nombre_producto, linea, tipo_cultivo
 ('66666666-0000-0000-0000-000000000003', 'LOT-PLATANO-001', '11111111-0000-0000-0000-000000000003', 'Platano harton',
  'MATERIA_PRIMA', 'FRUTA', 'AMBIENTE', NULL, NULL,
  '22222222-0000-0000-0000-000000000001', '55555555-0000-0000-0000-000000000001', 'TRADICIONAL',
- DATE '2026-10-24', 'Racimos cortados verdes, para maduracion en punto de venta', DATE '2026-10-24', DATE '2026-11-08',
+ DATEADD('DAY', -6, CURRENT_DATE), 'Racimos cortados verdes, para maduracion en punto de venta', DATEADD('DAY', -6, CURRENT_DATE), DATEADD('DAY', 9, CURRENT_DATE),
  'SEGUNDA', 8, FALSE,
  'KILOGRAMO', 300.000, 300.000, 1800, 0.00,
  'Sin merma prevista', FALSE, 'PUBLICADO', NULL, FALSE,
@@ -75,7 +75,7 @@ INSERT INTO lotes (id, codigo, producto_id, nombre_producto, linea, tipo_cultivo
 ('66666666-0000-0000-0000-000000000004', 'LOT-CAFE-001', '11111111-0000-0000-0000-000000000004', 'Cafe tostado',
  'TRANSFORMADO', 'DERIVADO_PROCESADO', 'AMBIENTE', NULL, NULL,
  '22222222-0000-0000-0000-000000000001', '55555555-0000-0000-0000-000000000002', 'ORGANICA_CERTIFICADA',
- DATE '2026-10-01', 'Cafe tostado medio, empacado en bolsa de valvula', DATE '2026-10-01', DATE '2027-03-29',
+ DATEADD('DAY', -29, CURRENT_DATE), 'Cafe tostado medio, empacado en bolsa de valvula', DATEADD('DAY', -29, CURRENT_DATE), DATEADD('DAY', 150, CURRENT_DATE),
  'EXTRA', 0, TRUE,
  'KILOGRAMO', 80.000, 80.000, 22000, 0.00,
  'Sin merma prevista', FALSE, 'PUBLICADO', NULL, FALSE,
@@ -88,3 +88,10 @@ INSERT INTO lote_custodia (lote_id, orden, tipo, almacen_id, guia_id, lugar, res
 ('66666666-0000-0000-0000-000000000002', 1, 'INGRESO_ALMACEN', '44444444-0000-0000-0000-000000000001', NULL, 'Acopio Armenia', 'Operador de acopio', CAST('2026-10-26T10:00:00Z' AS TIMESTAMP WITH TIME ZONE), 5.00, 'Ingreso a cadena de frio'),
 ('66666666-0000-0000-0000-000000000003', 0, 'COSECHA', NULL, NULL, 'Finca La Esperanza, Armenia', 'Maria Gomez', CAST('2026-10-24T05:45:00Z' AS TIMESTAMP WITH TIME ZONE), NULL, 'Cosecha registrada por el campesino'),
 ('66666666-0000-0000-0000-000000000004', 0, 'COSECHA', NULL, NULL, 'Finca La Esperanza, Armenia', 'Maria Gomez', CAST('2026-10-01T08:00:00Z' AS TIMESTAMP WITH TIME ZONE), NULL, 'Cafe tostado y empacado en la finca');
+
+-- Campana y cupon de demostracion, con fechas relativas para que siempre esten vigentes
+INSERT INTO descuentos_temporada (id, nombre, producto_id, porcentaje, inicio, fin, activo) VALUES
+('77777777-0000-0000-0000-000000000001', 'Cosecha de mango', '11111111-0000-0000-0000-000000000001', 15, DATEADD('DAY', -5, CURRENT_DATE), DATEADD('DAY', 45, CURRENT_DATE), TRUE);
+
+INSERT INTO cupones (id, codigo, comprador_id, porcentaje, vence_el, usado_en) VALUES
+('88888888-0000-0000-0000-000000000001', 'BIENVENIDA10', '33333333-0000-0000-0000-000000000001', 10, DATEADD('DAY', 60, CURRENT_DATE), NULL);

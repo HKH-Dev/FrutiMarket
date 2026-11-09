@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
-import { Token } from './modelos';
+import { Registro, Rol, Token } from './modelos';
 
 const CLAVE_SESION = 'frutimarket.sesion';
 
@@ -25,6 +25,10 @@ export class AuthService {
   readonly roles = computed(() => this.sesion()?.roles ?? []);
   readonly autenticado = computed(() => this.sesion() !== null);
   readonly esAdmin = computed(() => this.roles().includes('ADMIN'));
+  readonly rol = computed(() => (this.roles()[0] as Rol | undefined) ?? null);
+  readonly esComprador = computed(() => this.rol() === 'COMPRADOR');
+  /** Id del campesino o comprador del usuario: claim actorId del JWT. */
+  readonly actorId = computed(() => leerActor(this.sesion()?.token));
 
   token(): string | null {
     const sesion = this.sesion();
@@ -50,9 +54,27 @@ export class AuthService {
     );
   }
 
+  registrar(datos: Registro): Observable<unknown> {
+    return this.http.post('/api/auth/registro', datos);
+  }
+
+  /** Pantalla inicial de cada perfil. */
+  inicioDelRol(): string {
+    return this.rol() === 'ADMIN' ? '/consola' : this.rol() === 'CAMPESINO' ? '/finca' : '/';
+  }
+
   cerrarSesion(): void {
     guardar(null);
     this.sesion.set(null);
+  }
+}
+
+function leerActor(token: string | undefined): string | null {
+  try {
+    const carga = token!.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return (JSON.parse(atob(carga)) as { actorId?: string }).actorId ?? null;
+  } catch {
+    return null;
   }
 }
 

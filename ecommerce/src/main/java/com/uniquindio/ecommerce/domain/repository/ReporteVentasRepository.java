@@ -1,6 +1,7 @@
 package com.uniquindio.ecommerce.domain.repository;
 
 import com.uniquindio.ecommerce.domain.valueobject.catalogo.UnidadMedida;
+import com.uniquindio.ecommerce.domain.valueobject.identidad.CampesinoId;
 import com.uniquindio.ecommerce.domain.valueobject.identidad.ProductoId;
 
 import java.math.BigDecimal;
@@ -14,6 +15,13 @@ public interface ReporteVentasRepository {
      * En empate, por nombre del producto.
      */
     List<ProductoVendido> productosMasVendidos(int limite);
+
+    /** Lo vendido (y no reembolsado) de los lotes de un campesino, por producto. */
+    List<VentaDeCampesino> ventasDelCampesino(CampesinoId campesino);
+
+    record VentaDeCampesino(ProductoId producto, String nombre, BigDecimal cantidadVendida, UnidadMedida unidad,
+                            BigDecimal ingresos, long numeroCompras) {
+    }
 
     record ProductoVendido(ProductoId producto, String nombre, BigDecimal cantidadVendida, UnidadMedida unidad,
                            long numeroCompras) {

@@ -21,4 +21,9 @@ public class CompradorRepositoryEnMemoria implements CompradorRepository {
     public Optional<Comprador> obtenerComprador(CompradorId id) {
         return Optional.ofNullable(compradores.get(id));
     }
+
+    @Override
+    public java.util.List<Comprador> todos() {
+        return java.util.List.copyOf(compradores.values());
+    }
 }

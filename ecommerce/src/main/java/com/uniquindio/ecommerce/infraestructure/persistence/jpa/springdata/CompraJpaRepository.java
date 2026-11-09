@@ -29,4 +29,17 @@ public interface CompraJpaRepository extends JpaRepository<CompraEntity, UUID> {
             order by sum(d.cantidad) desc, l.nombreProducto asc
             """)
     List<ProductoVendidoFila> rankingProductosVendidos(@Param("estado") EstadoCompra estado, Limit limite);
+
+    /** Ventas de un campesino por producto; ingresos a precio de finca. */
+    @Query("""
+            select new com.uniquindio.ecommerce.infraestructure.persistence.jpa.springdata.VentaCampesinoFila(
+                       l.productoId, l.nombreProducto, l.unidad, sum(d.cantidad), sum(d.cantidad * d.precioUnitario), count(distinct c.id))
+            from CompraEntity c
+            join c.detalles d
+            join LoteEntity l on l.id = d.loteId
+            where c.estado = :estado and l.campesinoId = :campesino
+            group by l.productoId, l.nombreProducto, l.unidad
+            order by sum(d.cantidad * d.precioUnitario) desc
+            """)
+    List<VentaCampesinoFila> ventasDelCampesino(@Param("estado") EstadoCompra estado, @Param("campesino") UUID campesino);
 }

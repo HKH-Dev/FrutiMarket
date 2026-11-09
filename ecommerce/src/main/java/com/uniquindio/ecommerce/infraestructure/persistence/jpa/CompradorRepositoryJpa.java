@@ -30,4 +30,10 @@ public class CompradorRepositoryJpa implements CompradorRepository {
     public Optional<Comprador> obtenerComprador(CompradorId id) {
         return jpa.findById(id.valor()).map(CompradorMapper::aDominio);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<Comprador> todos() {
+        return jpa.findAll().stream().map(CompradorMapper::aDominio).toList();
+    }
 }

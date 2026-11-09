@@ -71,6 +71,14 @@ public class SeguridadConfig {
                         .hasRole(Rol.ADMIN.name())
                         .requestMatchers(HttpMethod.DELETE, "/api/lotes/*/reservas/*").hasRole(Rol.ADMIN.name())
                         .requestMatchers("/api/almacenes/**", "/api/reportes/**").hasRole(Rol.ADMIN.name())
+                        // Funcionalidades comerciales
+                        .requestMatchers("/api/pagos/**", "/api/favoritos/**", "/api/cupones/mios").hasRole(Rol.COMPRADOR.name())
+                        .requestMatchers(HttpMethod.POST, "/api/chat/conversaciones").hasRole(Rol.COMPRADOR.name())
+                        .requestMatchers("/api/chat/**").hasAnyRole(Rol.COMPRADOR.name(), Rol.CAMPESINO.name())
+                        .requestMatchers("/api/paneles/campesino/**").hasRole(Rol.CAMPESINO.name())
+                        .requestMatchers("/api/paneles/admin/**", "/api/cupones/**").hasRole(Rol.ADMIN.name())
+                        .requestMatchers(HttpMethod.GET, "/api/ofertas/vigentes").permitAll()
+                        .requestMatchers("/api/ofertas/**").hasRole(Rol.ADMIN.name())
                         // Publico: registro, login, catalogo y consultas (GET), Swagger y consola H2
                         .anyRequest().permitAll())
                 .oauth2ResourceServer(servidor -> servidor
