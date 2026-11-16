@@ -1,8 +1,10 @@
 import { Routes } from '@angular/router';
 import { Rol } from './core/modelos';
-import { rolGuard } from './core/rol.guard';
+import { invitadoGuard, rolGuard, sesionGuard } from './core/guards';
 
-const solo = (...roles: Rol[]) => ({ canActivate: [rolGuard], data: { roles } });
+/** Ruta privada de uno o varios perfiles: primero exige sesion y luego el rol. */
+const solo = (...roles: Rol[]) => ({ canActivate: [sesionGuard, rolGuard], data: { roles } });
+const soloInvitados = { canActivate: [invitadoGuard] };
 const F = 'FrutiMarket';
 
 /** Cada pantalla se carga solo cuando se visita (loadComponent), asi la app inicial pesa menos. */
@@ -10,8 +12,8 @@ export const routes: Routes = [
   { path: '', title: F, loadComponent: () => import('./features/tienda/inicio').then((m) => m.Inicio) },
   { path: 'catalogo', title: `Catálogo | ${F}`, loadComponent: () => import('./features/tienda/catalogo').then((m) => m.Catalogo) },
   { path: 'lotes/:id', title: `Lote | ${F}`, loadComponent: () => import('./features/tienda/lote-detalle').then((m) => m.LoteDetalle) },
-  { path: 'login', title: `Iniciar sesión | ${F}`, loadComponent: () => import('./features/acceso/login').then((m) => m.Login) },
-  { path: 'registro', title: `Crear cuenta | ${F}`, loadComponent: () => import('./features/acceso/registro').then((m) => m.Registro) },
+  { path: 'login', title: `Iniciar sesión | ${F}`, ...soloInvitados, loadComponent: () => import('./features/acceso/login').then((m) => m.Login) },
+  { path: 'registro', title: `Crear cuenta | ${F}`, ...soloInvitados, loadComponent: () => import('./features/acceso/registro').then((m) => m.Registro) },
   { path: 'carrito', title: `Carrito | ${F}`, loadComponent: () => import('./features/comprador/carrito').then((m) => m.Carrito) },
   { path: 'compras', title: `Mis compras | ${F}`, ...solo('COMPRADOR'), loadComponent: () => import('./features/comprador/compras').then((m) => m.Compras) },
   { path: 'favoritos', title: `Favoritos | ${F}`, ...solo('COMPRADOR'), loadComponent: () => import('./features/comprador/favoritos').then((m) => m.Favoritos) },

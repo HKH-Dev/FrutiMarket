@@ -1,72 +1,92 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { ApiService } from '../../core/api.service';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { AvisosService } from '../../core/avisos.service';
 import { mensajeDeError } from '../../core/errores';
 import { Comprobante, ItemCompra, Liquidacion, MetodoPago } from '../../core/modelos';
+import { ComprasService } from '../../core/servicios/compras.service';
 import { TiendaService } from '../../core/tienda.service';
 import { Fruta } from '../../shared/fruta';
 
-/** Carrito y pago simulado. Los totales siempre los calcula el backend (cotizacion). */
+const DIGITOS = /^\d{4}$/;
+
+/**
+ * Carrito y pago simulado con formulario reactivo (POST protegido /api/pagos/checkout).
+ * Los totales siempre los calcula el backend (cotizacion): el navegador solo los muestra.
+ */
 @Component({
   selector: 'app-carrito',
-  imports: [CurrencyPipe, FormsModule, RouterLink, Fruta],
+  imports: [CurrencyPipe, ReactiveFormsModule, RouterLink, Fruta],
   template: `
-    <div class="ancho tienda-contenido">
+    <div class="container tienda-contenido">
       @if (comprobante(); as c) {
         <div class="vacio" role="status">
           <h1>Pago aprobado</h1>
           <p>Referencia {{ c.referencia }}. Total pagado: <strong>{{ c.liquidacion.total | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong></p>
-          <a routerLink="/compras" class="boton">Ver mis compras</a>
+          <a routerLink="/compras" class="btn btn-warning">Ver mis compras</a>
         </div>
       } @else if (!tienda.lineas().length) {
-        <div class="vacio"><h1>Tu carrito está vacío</h1><p class="sutil">Elige un lote del catálogo para empezar.</p><a routerLink="/catalogo" class="boton">Ver catálogo</a></div>
+        <div class="vacio"><h1>Tu carrito está vacío</h1><p class="sutil">Elige un lote del catálogo para empezar.</p><a routerLink="/catalogo" class="btn btn-warning">Ver catálogo</a></div>
       } @else {
         <h1>Carrito</h1>
         <div class="detalle">
-          <section class="lienzo">
+          <section class="card card-body lienzo">
             @for (l of tienda.lineas(); track l.lote.id) {
               <div class="linea-carrito">
                 <app-fruta [nombre]="l.lote.producto" />
                 <div><strong>{{ l.lote.producto }}</strong><div class="sutil">{{ l.lote.precioPorUnidad | currency: 'COP' : 'symbol-narrow' : '1.0-0' }} por {{ l.lote.unidad }}</div></div>
-                <label class="campo"><span class="oculto-a11y">Cantidad de {{ l.lote.producto }}</span>
-                  <input type="number" min="1" [ngModel]="l.cantidad" (ngModelChange)="cambiar(l.lote.id, $event)" />
-                </label>
-                <button type="button" class="boton boton-linea boton-chico" (click)="quitar(l.lote.id)">Quitar</button>
+                <div><label class="oculto-a11y" [for]="'cantidad-' + l.lote.id">Cantidad de {{ l.lote.producto }}</label>
+                  <input class="form-control" [id]="'cantidad-' + l.lote.id" type="number" min="1" [value]="l.cantidad" (change)="cambiar(l.lote.id, $event)" />
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" (click)="tienda.quitar(l.lote.id)">Quitar</button>
               </div>
             }
           </section>
-          <aside class="lienzo">
+          <aside class="card card-body lienzo">
             <h2>Pago</h2>
             @if (!auth.esComprador()) {
-              <p class="aviso">Inicia sesión como comprador para pagar.</p>
-              <a routerLink="/login" [queryParams]="{ volver: '/carrito' }" class="boton boton-verde">Iniciar sesión</a>
+              <p class="alert alert-info mb-0">Inicia sesión como comprador para pagar.</p>
+              <a routerLink="/login" [queryParams]="{ volver: '/carrito' }" class="btn btn-primary">Iniciar sesión</a>
             } @else {
-              <form class="fila" (submit)="$event.preventDefault(); cotizar()" style="flex-wrap: nowrap; align-items: end">
-                <label class="campo" style="flex: 1">Cupón <input name="cupon" [(ngModel)]="cupon" autocomplete="off" /></label>
-                <button class="boton boton-linea" type="submit">Aplicar</button>
-              </form>
-              @if (liquidacion(); as t) {
-                <div class="totales" aria-live="polite">
-                  <div><span>Subtotal</span><span>{{ t.subtotal | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span></div>
-                  @if (t.descuentoTemporada > 0) { <div><span>Descuento de temporada</span><span>-{{ t.descuentoTemporada | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span></div> }
-                  @if (t.descuentoCupon > 0) { <div><span>Cupón</span><span>-{{ t.descuentoCupon | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span></div> }
-                  <div class="total"><span>Total</span><span>{{ t.total | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span></div>
+              <form class="d-grid gap-3" [formGroup]="pago" (ngSubmit)="pagar()" novalidate>
+                <div>
+                  <label class="form-label" for="cupon">Cupón</label>
+                  <div class="input-group">
+                    <input id="cupon" class="form-control" formControlName="cupon" autocomplete="off" />
+                    <button class="btn btn-outline-primary" type="button" (click)="cotizar()">Aplicar</button>
+                  </div>
                 </div>
-              }
-              <div class="metodos" role="radiogroup" aria-label="Método de pago">
-                @for (m of metodos; track m) { <label><input type="radio" name="metodo" [value]="m" [(ngModel)]="metodo" /> {{ m === 'TARJETA' ? 'Tarjeta' : m === 'PSE' ? 'PSE' : 'Nequi' }}</label> }
-              </div>
-              @if (metodo() === 'TARJETA') {
-                <label class="campo">Últimos 4 dígitos
-                  <input name="digitos" inputmode="numeric" maxlength="4" [(ngModel)]="digitos" autocomplete="off" />
-                  <span class="ayuda">Pago simulado: no escribas el número completo. 0000 simula un rechazo.</span>
-                </label>
-              }
-              @if (error()) { <p class="aviso aviso-error" role="alert">{{ error() }}</p> }
-              <button type="button" class="boton" (click)="pagar()" [disabled]="pagando() || !puedePagar()">{{ pagando() ? 'Procesando pago…' : 'Pagar' }}</button>
+                @if (liquidacion(); as t) {
+                  <div class="totales" aria-live="polite">
+                    <div><span>Subtotal</span><span>{{ t.subtotal | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span></div>
+                    @if (t.descuentoTemporada > 0) { <div><span>Descuento de temporada</span><span>-{{ t.descuentoTemporada | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span></div> }
+                    @if (t.descuentoCupon > 0) { <div><span>Cupón</span><span>-{{ t.descuentoCupon | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span></div> }
+                    <div class="total"><span>Total</span><span>{{ t.total | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</span></div>
+                  </div>
+                }
+                <fieldset>
+                  <legend class="form-label fs-6">Método de pago</legend>
+                  <div class="metodos">
+                    @for (m of metodos; track m.valor) {
+                      <label><input type="radio" formControlName="metodo" [value]="m.valor" /> {{ m.texto }}</label>
+                    }
+                  </div>
+                </fieldset>
+                @if (metodo() === 'TARJETA') {
+                  <div>
+                    <label class="form-label" for="digitos">Últimos 4 dígitos de la tarjeta</label>
+                    <input id="digitos" class="form-control" formControlName="ultimosDigitos" inputmode="numeric" maxlength="4" autocomplete="off"
+                      [class.is-invalid]="pago.controls.ultimosDigitos.invalid && pago.controls.ultimosDigitos.touched" />
+                    <div class="invalid-feedback">Escribe exactamente 4 números.</div>
+                    <div class="form-text">Pago simulado: nunca escribas el número completo. 0000 simula un rechazo.</div>
+                  </div>
+                }
+                @if (error()) { <div class="alert alert-danger mb-0" role="alert">{{ error() }}</div> }
+                <button type="submit" class="btn btn-warning" [disabled]="pagando()">{{ pagando() ? 'Procesando pago…' : 'Pagar' }}</button>
+              </form>
             }
           </aside>
         </div>
@@ -74,43 +94,50 @@ import { Fruta } from '../../shared/fruta';
     </div>
   `,
 })
-export class Carrito implements OnInit {
-  private readonly api = inject(ApiService);
+export class Carrito {
+  private readonly compras = inject(ComprasService);
+  private readonly avisos = inject(AvisosService);
   protected readonly auth = inject(AuthService);
   protected readonly tienda = inject(TiendaService);
-  protected readonly router = inject(Router);
 
-  protected readonly metodos: MetodoPago[] = ['TARJETA', 'PSE', 'NEQUI'];
-  protected readonly cupon = signal('');
-  protected readonly metodo = signal<MetodoPago>('TARJETA');
-  protected readonly digitos = signal('');
+  protected readonly metodos: { valor: MetodoPago; texto: string }[] = [
+    { valor: 'TARJETA', texto: 'Tarjeta' }, { valor: 'PSE', texto: 'PSE' }, { valor: 'NEQUI', texto: 'Nequi' },
+  ];
+  protected readonly pago = inject(FormBuilder).nonNullable.group({
+    cupon: [''],
+    metodo: ['TARJETA' as MetodoPago, Validators.required],
+    ultimosDigitos: ['', [Validators.required, Validators.pattern(DIGITOS)]],
+  });
+  protected readonly metodo = toSignal(this.pago.controls.metodo.valueChanges, { initialValue: this.pago.controls.metodo.value });
   protected readonly liquidacion = signal<Liquidacion | null>(null);
   protected readonly comprobante = signal<Comprobante | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly pagando = signal(false);
-  protected readonly puedePagar = computed(() => this.metodo() !== 'TARJETA' || /^\d{4}$/.test(this.digitos()));
 
   private readonly items = computed<ItemCompra[]>(() => this.tienda.lineas().map((l) => ({ loteId: l.lote.id, cantidad: l.cantidad })));
 
   constructor() {
+    // Si cambia el carrito, el backend vuelve a calcular el total.
     effect(() => {
       this.items();
       untracked(() => this.cotizar());
     });
+    // Los digitos solo son obligatorios con tarjeta.
+    effect(() => {
+      const digitos = this.pago.controls.ultimosDigitos;
+      if (this.metodo() === 'TARJETA') {
+        digitos.enable();
+      } else {
+        digitos.disable();
+      }
+    });
   }
 
-  ngOnInit(): void {
-    this.error.set(null);
-  }
-
-  protected cambiar(loteId: string, cantidad: number): void {
+  protected cambiar(loteId: string, evento: Event): void {
+    const cantidad = Number((evento.target as HTMLInputElement).value);
     if (cantidad > 0) {
       this.tienda.cambiarCantidad(loteId, cantidad);
     }
-  }
-
-  protected quitar(loteId: string): void {
-    this.tienda.quitar(loteId);
   }
 
   protected cotizar(): void {
@@ -118,26 +145,37 @@ export class Carrito implements OnInit {
       return;
     }
     this.error.set(null);
-    this.api.cotizar(this.items(), this.cupon().trim() || null).subscribe({
+    this.compras.cotizar(this.items(), this.cupon()).subscribe({
       next: (t) => this.liquidacion.set(t),
       error: (e) => this.error.set(mensajeDeError(e)),
     });
   }
 
   protected pagar(): void {
+    if (this.pago.invalid) {
+      this.pago.markAllAsTouched();
+      return;
+    }
+    const { metodo, ultimosDigitos } = this.pago.getRawValue();
     this.pagando.set(true);
     this.error.set(null);
-    const digitos = this.metodo() === 'TARJETA' ? this.digitos() : null;
-    this.api.pagar(this.items(), this.cupon().trim() || null, this.metodo(), digitos).subscribe({
+    this.compras.pagar(this.items(), this.cupon(), metodo, metodo === 'TARJETA' ? ultimosDigitos : null).subscribe({
       next: (c) => {
         this.comprobante.set(c);
         this.tienda.vaciar();
         this.pagando.set(false);
+        this.avisos.exito('Pago aprobado. Tu compra quedó registrada.');
       },
       error: (e) => {
-        this.error.set(mensajeDeError(e));
+        const mensaje = mensajeDeError(e);
+        this.error.set(mensaje);
+        this.avisos.error(mensaje);
         this.pagando.set(false);
       },
     });
+  }
+
+  private cupon(): string | null {
+    return this.pago.controls.cupon.value.trim() || null;
   }
 }

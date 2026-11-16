@@ -3,52 +3,62 @@
   FrutiMarket
 </ng-template>
 
+<app-avisos />
+
 @if (menuPanel(); as menu) {
   <div [class]="clasePanel()">
-    <aside class="panel-lateral">
-      <div>
-        <a routerLink="/" class="marca" aria-label="FrutiMarket, ver la tienda"><ng-container [ngTemplateOutlet]="logo" /></a>
-        <div class="perfil-rol">{{ nombrePanel() }}</div>
+    <aside class="panel-lateral navbar navbar-dark navbar-expand-lg align-items-stretch">
+      <div class="panel-cabeza">
+        <a routerLink="/" class="marca navbar-brand" aria-label="FrutiMarket, ver la tienda"><ng-container [ngTemplateOutlet]="logo" /></a>
+        <button class="navbar-toggler" type="button" aria-controls="menu-panel" [attr.aria-expanded]="menuAbierto()"
+          aria-label="Abrir o cerrar el menú" (click)="alternarMenu()"><span class="navbar-toggler-icon"></span></button>
       </div>
-      <nav aria-label="Principal">
-        @for (enlace of menu; track enlace.ruta) {
-          <a [routerLink]="enlace.ruta" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: !!enlace.exacto }">{{ enlace.texto }}</a>
-        }
-      </nav>
-      <div class="panel-pie sesion">
-        <span>{{ auth.usuario() }}</span>
-        <button type="button" class="boton boton-chico boton-claro" (click)="salir()">Cerrar sesión</button>
+      <div id="menu-panel" class="collapse navbar-collapse panel-colapsable" [class.show]="menuAbierto()">
+        <div class="perfil-rol">{{ nombrePanel() }}</div>
+        <nav aria-label="Principal" class="navbar-nav flex-column">
+          @for (enlace of menu; track enlace.ruta) {
+            <a class="nav-link" [routerLink]="enlace.ruta" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: !!enlace.exacto }">{{ enlace.texto }}</a>
+          }
+        </nav>
+        <div class="panel-pie sesion">
+          <span>{{ auth.usuario() }}</span>
+          <button type="button" class="btn btn-sm btn-outline-light" (click)="salir()">Cerrar sesión</button>
+        </div>
       </div>
     </aside>
     <main class="panel-principal"><router-outlet /></main>
   </div>
 } @else {
-  <header class="tienda-barra">
-    <div class="ancho">
-      <a routerLink="/" class="marca" aria-label="FrutiMarket, inicio"><ng-container [ngTemplateOutlet]="logo" /></a>
-      <nav aria-label="Principal">
-        <a routerLink="/catalogo" routerLinkActive="activo">Catálogo</a>
-        @if (auth.esComprador()) {
-          <a routerLink="/compras" routerLinkActive="activo">Mis compras</a>
-          <a routerLink="/favoritos" routerLinkActive="activo">Favoritos</a>
-          <a routerLink="/cupones" routerLinkActive="activo">Cupones</a>
-          <a routerLink="/mensajes" routerLinkActive="activo">Mensajes</a>
-        }
-      </nav>
-      <div class="sesion">
-        <a routerLink="/carrito" class="boton boton-chico">Carrito @if (tienda.cuantos()) { <span class="contador">{{ tienda.cuantos() }}</span> }</a>
-        @if (auth.autenticado()) {
-          <span class="correo">{{ auth.usuario() }}</span>
-          <button type="button" class="boton boton-chico boton-claro" (click)="salir()">Cerrar sesión</button>
-        } @else {
-          <a routerLink="/login" class="boton boton-chico boton-claro">Iniciar sesión</a>
-        }
+  <header class="navbar navbar-expand-lg navbar-dark tienda-barra">
+    <div class="container">
+      <a routerLink="/" class="marca navbar-brand" aria-label="FrutiMarket, inicio"><ng-container [ngTemplateOutlet]="logo" /></a>
+      <button class="navbar-toggler" type="button" aria-controls="menu-tienda" [attr.aria-expanded]="menuAbierto()"
+        aria-label="Abrir o cerrar el menú" (click)="alternarMenu()"><span class="navbar-toggler-icon"></span></button>
+      <div id="menu-tienda" class="collapse navbar-collapse" [class.show]="menuAbierto()">
+        <nav aria-label="Principal" class="navbar-nav me-auto">
+          <a class="nav-link" routerLink="/catalogo" routerLinkActive="activo">Catálogo</a>
+          @if (auth.esComprador()) {
+            <a class="nav-link" routerLink="/compras" routerLinkActive="activo">Mis compras</a>
+            <a class="nav-link" routerLink="/favoritos" routerLinkActive="activo">Favoritos</a>
+            <a class="nav-link" routerLink="/cupones" routerLinkActive="activo">Cupones</a>
+            <a class="nav-link" routerLink="/mensajes" routerLinkActive="activo">Mensajes</a>
+          }
+        </nav>
+        <div class="sesion">
+          <a routerLink="/carrito" class="btn btn-sm btn-warning">Carrito @if (tienda.cuantos()) { <span class="badge contador">{{ tienda.cuantos() }}</span> }</a>
+          @if (auth.autenticado()) {
+            <span class="correo">{{ auth.usuario() }}</span>
+            <button type="button" class="btn btn-sm btn-outline-light" (click)="salir()">Cerrar sesión</button>
+          } @else {
+            <a routerLink="/login" class="btn btn-sm btn-outline-light">Iniciar sesión</a>
+          }
+        </div>
       </div>
     </div>
   </header>
   <main><router-outlet /></main>
   <footer class="pie">
-    <div class="ancho">
+    <div class="container">
       <span>FrutiMarket conecta fincas del Quindío con restaurantes, tiendas y hogares.</span>
       <a routerLink="/registro" style="color: inherit">Vende tu cosecha aquí</a>
     </div>

@@ -3,8 +3,10 @@ import { Component, OnInit, computed, inject, input, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { ApiService } from '../../core/api.service';
+import { ChatService } from '../../core/servicios/chat.service';
+import { LotesService } from '../../core/servicios/lotes.service';
 import { AuthService } from '../../core/auth.service';
+import { AvisosService } from '../../core/avisos.service';
 import { mensajeDeError } from '../../core/errores';
 import { LoteResumen, Trazabilidad } from '../../core/modelos';
 import { TiendaService } from '../../core/tienda.service';
@@ -15,10 +17,10 @@ import { Fruta } from '../../shared/fruta';
   selector: 'app-lote-detalle',
   imports: [CurrencyPipe, DatePipe, FormsModule, RouterLink, Fruta],
   template: `
-    <div class="ancho tienda-contenido">
+    <div class="container tienda-contenido">
       <a routerLink="/catalogo">Volver al catálogo</a>
       @if (error()) {
-        <p class="aviso aviso-error" role="alert">{{ error() }}</p>
+        <p class="alert alert-danger" role="alert">{{ error() }}</p>
       }
       @if (traza(); as t) {
         <div class="detalle">
@@ -27,21 +29,21 @@ import { Fruta } from '../../shared/fruta';
               <div style="width: 5rem"><app-fruta [nombre]="t.producto" /></div>
               <div><h1>{{ t.producto }}</h1><span class="sutil">Lote {{ t.codigo }}</span></div>
             </div>
-            <section class="lienzo">
+            <section class="card card-body lienzo">
               <h2>Origen y calidad</h2>
               <dl class="datos">
                 <dt>Cosecha</dt><dd>{{ t.fechaCosecha | date: 'longDate' }}</dd>
                 <dt>Técnica</dt><dd>{{ t.tecnicaProduccion }}</dd>
                 <dt>Calidad declarada</dt>
                 <dd>{{ t.calidadDeclarada.categoria }}, {{ t.calidadDeclarada.porcentajeDefectos }}% de defectos
-                  @if (t.calidadDeclarada.certificadoOrganico) { <span class="chip">Orgánico</span> }
+                  @if (t.calidadDeclarada.certificadoOrganico) { <span class="badge chip">Orgánico</span> }
                 </dd>
                 <dt>Verificada</dt>
                 <dd>@if (t.calidadVerificada; as v) { {{ v.categoria }}, {{ v.porcentajeDefectos }}% de defectos } @else { Aún sin inspección }</dd>
                 @if (t.fechaLimiteConsumo) { <dt>Consumir antes del</dt><dd>{{ t.fechaLimiteConsumo | date: 'longDate' }}</dd> }
               </dl>
             </section>
-            <section class="lienzo">
+            <section class="card card-body lienzo">
               <h2>Recorrido del lote</h2>
               <ol class="custodia">
                 @for (paso of t.custodia; track $index) {
@@ -55,8 +57,8 @@ import { Fruta } from '../../shared/fruta';
             </section>
           </div>
           @if (lote(); as l) {
-            <aside class="lienzo">
-              @if (descuento() > 0) { <span class="chip chip-amarillo" style="justify-self: start">{{ descuento() }}% menos por temporada</span> }
+            <aside class="card card-body lienzo">
+              @if (descuento() > 0) { <span class="badge chip chip-amarillo" style="justify-self: start">{{ descuento() }}% menos por temporada</span> }
               <div class="etiqueta-precio">
                 <strong>{{ precio() | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
                 @if (descuento() > 0) { <s>{{ l.precioPorUnidad | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</s> }
@@ -65,13 +67,13 @@ import { Fruta } from '../../shared/fruta';
               <p class="sutil">{{ l.cantidadDisponible }} {{ l.unidad }} disponibles</p>
               @if (l.estado === 'PUBLICADO' && !esVendedorOAdmin()) {
                 <label class="campo">Cantidad en {{ l.unidad }}
-                  <input type="number" min="1" [max]="l.cantidadDisponible" [(ngModel)]="cantidad" />
+                  <input class="form-control" type="number" min="1" [max]="l.cantidadDisponible" [(ngModel)]="cantidad" />
                 </label>
-                <button type="button" class="boton" (click)="agregar(l)" [disabled]="cantidad() <= 0 || cantidad() > l.cantidadDisponible">Agregar al carrito</button>
-                @if (agregado()) { <p class="aviso" role="status">Agregado. <a routerLink="/carrito">Ir al carrito</a></p> }
-                <button type="button" class="boton boton-linea" (click)="contactar(l.id)">Escribir al vendedor</button>
+                <button type="button" class="btn btn-warning" (click)="agregar(l)" [disabled]="cantidad() <= 0 || cantidad() > l.cantidadDisponible">Agregar al carrito</button>
+                @if (agregado()) { <p class="alert alert-success" role="status">Agregado. <a routerLink="/carrito">Ir al carrito</a></p> }
+                <button type="button" class="btn btn-outline-primary" (click)="contactar(l.id)">Escribir al vendedor</button>
               } @else if (l.estado !== 'PUBLICADO') {
-                <p class="aviso">Este lote no está a la venta.</p>
+                <p class="alert alert-success">Este lote no está a la venta.</p>
               }
             </aside>
           }
@@ -83,7 +85,9 @@ import { Fruta } from '../../shared/fruta';
   `,
 })
 export class LoteDetalle implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly avisos = inject(AvisosService);
+  private readonly chatApi = inject(ChatService);
+  private readonly lotesApi = inject(LotesService);
   private readonly auth = inject(AuthService);
   private readonly tienda = inject(TiendaService);
   private readonly router = inject(Router);
@@ -101,7 +105,7 @@ export class LoteDetalle implements OnInit {
   protected readonly precio = computed(() => (this.lote()?.precioPorUnidad ?? 0) * (1 - this.descuento() / 100));
 
   ngOnInit(): void {
-    forkJoin({ traza: this.api.trazabilidad(this.id()), lote: this.api.lote(this.id()) }).subscribe({
+    forkJoin({ traza: this.lotesApi.trazabilidad(this.id()), lote: this.lotesApi.lote(this.id()) }).subscribe({
       next: ({ traza, lote }) => {
         this.traza.set(traza);
         this.lote.set(lote);
@@ -113,6 +117,7 @@ export class LoteDetalle implements OnInit {
   protected agregar(lote: LoteResumen): void {
     this.tienda.agregar(lote, this.cantidad());
     this.agregado.set(true);
+    this.avisos.exito(`${lote.producto} agregado al carrito.`);
   }
 
   protected contactar(loteId: string): void {
@@ -120,7 +125,7 @@ export class LoteDetalle implements OnInit {
       this.router.navigate(['/login'], { queryParams: { volver: `/lotes/${loteId}` } });
       return;
     }
-    this.api.iniciarConversacion(loteId).subscribe({
+    this.chatApi.iniciarConversacion(loteId).subscribe({
       next: (c) => this.router.navigate(['/mensajes'], { queryParams: { c: c.id } }),
       error: (e) => this.error.set(mensajeDeError(e)),
     });

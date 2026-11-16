@@ -1,13 +1,13 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { ApiService } from '../../core/api.service';
+import { CuponesService } from '../../core/servicios/cupones.service';
 import { Cupon } from '../../core/modelos';
 
 @Component({
   selector: 'app-cupones',
   imports: [DatePipe],
   template: `
-    <div class="ancho tienda-contenido">
+    <div class="container tienda-contenido">
       <h1>Mis cupones</h1>
       <div class="pila">
         @for (c of cupones(); track c.id) {
@@ -23,10 +23,10 @@ import { Cupon } from '../../core/modelos';
   `,
 })
 export class Cupones implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly cuponesApi = inject(CuponesService);
   protected readonly cupones = signal<Cupon[]>([]);
 
   ngOnInit(): void {
-    this.api.misCupones().subscribe((c) => this.cupones.set(c));
+    this.cuponesApi.misCupones().subscribe((c) => this.cupones.set(c));
   }
 }

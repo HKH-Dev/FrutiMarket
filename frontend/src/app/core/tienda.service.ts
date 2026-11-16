@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { ApiService } from './api.service';
+import { FavoritosService } from './servicios/favoritos.service';
+import { OfertasService } from './servicios/ofertas.service';
 import { AuthService } from './auth.service';
 import { LoteResumen, Oferta } from './modelos';
 
@@ -13,7 +14,8 @@ export interface LineaCarrito {
 /** Estado compartido de la tienda: carrito (persistente), ofertas vigentes y favoritos del comprador. */
 @Injectable({ providedIn: 'root' })
 export class TiendaService {
-  private readonly api = inject(ApiService);
+  private readonly ofertasApi = inject(OfertasService);
+  private readonly favoritosApi = inject(FavoritosService);
   private readonly auth = inject(AuthService);
 
   readonly lineas = signal<LineaCarrito[]>(leerCarrito());
@@ -22,12 +24,12 @@ export class TiendaService {
   readonly favoritos = signal<ReadonlySet<string>>(new Set());
 
   cargar(): void {
-    this.api.ofertasVigentes().subscribe((ofertas) => this.ofertas.set(ofertas));
+    this.ofertasApi.ofertasVigentes().subscribe((ofertas) => this.ofertas.set(ofertas));
   }
 
   recargarFavoritos(): void {
     if (this.auth.esComprador()) {
-      this.api.favoritos().subscribe((ids) => this.favoritos.set(new Set(ids)));
+      this.favoritosApi.favoritos().subscribe((ids) => this.favoritos.set(new Set(ids)));
     } else {
       this.favoritos.set(new Set());
     }
@@ -40,7 +42,7 @@ export class TiendaService {
 
   alternarFavorito(productoId: string): void {
     const actuales = new Set(this.favoritos());
-    const accion = actuales.has(productoId) ? this.api.quitarFavorito(productoId) : this.api.agregarFavorito(productoId);
+    const accion = actuales.has(productoId) ? this.favoritosApi.quitarFavorito(productoId) : this.favoritosApi.agregarFavorito(productoId);
     if (!actuales.delete(productoId)) {
       actuales.add(productoId);
     }

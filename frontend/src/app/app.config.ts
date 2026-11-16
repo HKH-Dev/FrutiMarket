@@ -7,7 +7,7 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth.interceptor';
 
-// Fechas, numeros y pesos en formato de Colombia (1.234,5 · $ 3.500)
+// Fechas, numeros y pesos en formato de Colombia (1.234,5 y $ 3.500)
 registerLocaleData(localeEsCo);
 
 export const appConfig: ApplicationConfig = {

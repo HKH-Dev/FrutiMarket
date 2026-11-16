@@ -1,7 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
-import { ApiService } from '../../core/api.service';
+import { FavoritosService } from '../../core/servicios/favoritos.service';
+import { LotesService } from '../../core/servicios/lotes.service';
 import { LoteResumen } from '../../core/modelos';
 import { TiendaService } from '../../core/tienda.service';
 import { EtiquetaLote } from '../../shared/etiqueta-lote';
@@ -11,20 +12,21 @@ import { EtiquetaLote } from '../../shared/etiqueta-lote';
   selector: 'app-favoritos',
   imports: [RouterLink, EtiquetaLote],
   template: `
-    <div class="ancho tienda-contenido">
+    <div class="container tienda-contenido">
       <h1>Favoritos</h1>
       @if (lotes().length) {
-        <div class="rejilla-lotes">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
           @for (l of visibles(); track l.id) { <app-etiqueta-lote [lote]="l" /> }
         </div>
       } @else if (!cargando()) {
-        <div class="vacio"><h2>Aún no tienes favoritos</h2><p class="sutil">Toca el corazón de un lote para guardarlo aquí.</p><a routerLink="/catalogo" class="boton">Ver catálogo</a></div>
+        <div class="vacio"><h2>Aún no tienes favoritos</h2><p class="sutil">Toca el corazón de un lote para guardarlo aquí.</p><a routerLink="/catalogo" class="btn btn-warning">Ver catálogo</a></div>
       }
     </div>
   `,
 })
 export class Favoritos implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly favoritosApi = inject(FavoritosService);
+  private readonly lotesApi = inject(LotesService);
   private readonly tienda = inject(TiendaService);
   protected readonly lotes = signal<LoteResumen[]>([]);
   protected readonly cargando = signal(true);
@@ -34,12 +36,12 @@ export class Favoritos implements OnInit {
   }
 
   ngOnInit(): void {
-    this.api.favoritos().subscribe((ids) => {
+    this.favoritosApi.favoritos().subscribe((ids) => {
       if (!ids.length) {
         this.cargando.set(false);
         return;
       }
-      forkJoin(ids.map((id) => this.api.mejorLote(id).pipe(catchError(() => of(null))))).subscribe((r) => {
+      forkJoin(ids.map((id) => this.lotesApi.mejorLote(id).pipe(catchError(() => of(null))))).subscribe((r) => {
         this.lotes.set(r.filter((l): l is LoteResumen => l !== null));
         this.cargando.set(false);
       });

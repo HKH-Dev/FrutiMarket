@@ -13,7 +13,7 @@ const DIAS_BARRA_LLENA = 30;
 @Component({
   selector: 'app-etiqueta-lote',
   imports: [CurrencyPipe, RouterLink, Fruta],
-  host: { class: 'etiqueta-lote' },
+  host: { class: 'etiqueta-lote card h-100' },
   template: `
     @if (descuento() > 0) { <span class="sello">-{{ descuento() }}%</span> }
     <div class="etiqueta-cabeza">
@@ -38,7 +38,7 @@ const DIAS_BARRA_LLENA = 30;
       <div class="frescura">No perecedero</div>
     }
     <div class="etiqueta-pie">
-      <span class="chip">Calidad {{ lote().puntajeCalidad }}/100</span>
+      <span class="badge chip">Calidad {{ lote().puntajeCalidad }}/100</span>
       @if (auth.esComprador()) {
         <button type="button" class="boton-corazon" [attr.aria-pressed]="esFavorito()"
           [attr.aria-label]="(esFavorito() ? 'Quitar de favoritos: ' : 'Guardar en favoritos: ') + lote().producto"

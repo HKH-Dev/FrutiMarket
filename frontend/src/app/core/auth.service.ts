@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { Registro, Rol, Token } from './modelos';
 
 const CLAVE_SESION = 'frutimarket.sesion';
@@ -30,6 +31,20 @@ export class AuthService {
   /** Id del campesino o comprador del usuario: claim actorId del JWT. */
   readonly actorId = computed(() => leerActor(this.sesion()?.token));
 
+  /** El token tal cual esta guardado. Si vencio, el backend respondera 401 y el interceptor cerrara la sesion. */
+  tokenGuardado(): string | null {
+    // Se lee de localStorage en cada peticion: asi se nota si alguien lo cambia a mano (Application > Local storage).
+    try {
+      const texto = localStorage.getItem(CLAVE_SESION);
+      if (texto) {
+        return (JSON.parse(texto) as Sesion).token;
+      }
+    } catch {
+      // Almacenamiento bloqueado o JSON alterado: se usa la sesion en memoria.
+    }
+    return this.sesion()?.token ?? null;
+  }
+
   token(): string | null {
     const sesion = this.sesion();
     if (sesion && new Date(sesion.expiraEn) <= new Date()) {
@@ -40,7 +55,7 @@ export class AuthService {
   }
 
   iniciarSesion(correo: string, clave: string): Observable<Token> {
-    return this.http.post<Token>('/api/auth/login', { correo, clave }).pipe(
+    return this.http.post<Token>(`${environment.apiUrl}/auth/login`, { correo, clave }).pipe(
       tap((respuesta) => {
         const sesion: Sesion = {
           usuario: respuesta.correo,
@@ -55,7 +70,7 @@ export class AuthService {
   }
 
   registrar(datos: Registro): Observable<unknown> {
-    return this.http.post('/api/auth/registro', datos);
+    return this.http.post(`${environment.apiUrl}/auth/registro`, datos);
   }
 
   /** Pantalla inicial de cada perfil. */
