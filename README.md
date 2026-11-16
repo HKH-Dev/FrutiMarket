@@ -164,7 +164,52 @@ detecta fallas de conexión entre capas. La de integración sí: por ejemplo, co
 ítem de una compra falla, la transacción deshace también el primero. Conviene para los flujos
 importantes de punta a punta, y dejar las reglas en detalle a las pruebas unitarias, que son más baratas.
 
-## Entrega 3: producto final
+## Entrega 3: frontend conectado al backend
+
+### Cómo ejecutar
+
+| Qué | Comando | Dirección |
+|---|---|---|
+| Backend con H2 | `cd ecommerce` y `./gradlew bootRun` | `http://localhost:8080` (Swagger en `/swagger-ui.html`) |
+| Backend con MariaDB | `cd ecommerce` y `./gradlew bootRun --args='--spring.profiles.active=mariadb'` | igual |
+| Frontend | `cd frontend`, `npm install` y `npm start` | `http://localhost:4200` (el proxy envía `/api` y `/ws` al 8080) |
+| Todo con Docker | `cp .env.example .env` y `docker compose up --build -d` | `http://localhost:8088` (ver [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md)) |
+
+Usuarios de prueba: los de la tabla [Usuarios de prueba](#usuarios-de-prueba). El comprador demo tiene el cupón `BIENVENIDA10`; en el pago, una tarjeta terminada en `0000` simula un rechazo.
+
+### Pantallas
+
+| Pantalla | Ruta | Acceso |
+|---|---|---|
+| Inicio con recomendaciones y ofertas | `/` | Pública |
+| Catálogo paginado con búsqueda mientras se escribe | `/catalogo` | Pública |
+| Detalle y trazabilidad de un lote | `/lotes/:id` | Pública |
+| Iniciar sesión y crear cuenta | `/login`, `/registro` | Solo sin sesión (`invitadoGuard`) |
+| Carrito y pago simulado | `/carrito` | Pública; pagar exige comprador |
+| Mis compras y reembolsos | `/compras` | Comprador |
+| Favoritos | `/favoritos` | Comprador |
+| Mis cupones | `/cupones` | Comprador |
+| Mensajes (chat en vivo) | `/mensajes` | Comprador y campesino |
+| Mi finca: resumen, lotes, registrar lote | `/finca`, `/finca/lotes`, `/finca/lotes/nuevo` | Campesino |
+| Consola: ventas, campesinos, temporadas, cupones | `/consola`, `/consola/campesinos`, `/consola/temporadas`, `/consola/cupones` | Administrador |
+
+### Cómo cumple los mínimos de la Entrega 3
+
+| Mínimo | Dónde |
+|---|---|
+| 2.1 Interfaces espejo, un servicio por grupo, CORS | `frontend/src/app/core/modelos.ts`, `core/servicios/*.service.ts`, `CorsConfig.java`; URL base en `src/environments` |
+| 2.2 Login reactivo con validaciones | `features/acceso/login.ts`, `core/auth.service.ts` (token en localStorage) |
+| 2.3 Interceptor con manejo del 401 | `core/auth.interceptor.ts` |
+| 2.4 Guards | `core/guards.ts`: `sesionGuard`, `invitadoGuard` y `rolGuard` (extra) |
+| 2.5 Catálogo paginado con búsqueda en el backend | `features/tienda/catalogo.ts` y `GET /api/lotes/buscar` |
+| 2.6 Operación con formulario reactivo | Comprador: pago en `features/comprador/carrito.ts`. Vendedor: `features/finca/nuevo-lote.ts`. Códigos HTTP traducidos en `core/errores.ts` |
+| 2.7 Avisos | `core/avisos.service.ts` y `shared/avisos.ts` |
+| 2.8 Bootstrap | Registrado en `angular.json`; navbar con menú hamburguesa en `app.html`; tarjetas `card` y cuadrícula `row-cols` |
+| 2.9 Funcionalidad propia | Seis: descuentos por temporada, recomendaciones, chat en vivo, pagos simulados, favoritos y cupones |
+
+Extras: búsqueda reactiva con Signals y debounce, guard por rol, MariaDB con Docker, buenas prácticas (environments, carpetas por funcionalidad, componentes reutilizables), diseño propio y más funcionalidades propias.
+
+### Funcionalidades adicionales y despliegue
 
 Ejecutar todo con Docker: ver [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md). La tienda queda en `http://localhost:8088`.
 

@@ -1,6 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ApiService } from '../../core/api.service';
+import { OfertasService } from '../../core/servicios/ofertas.service';
+import { ProductosService } from '../../core/servicios/productos.service';
+import { AvisosService } from '../../core/avisos.service';
 import { mensajeDeError } from '../../core/errores';
 import { Oferta, Producto } from '../../core/modelos';
 import { TiendaService } from '../../core/tienda.service';
@@ -11,33 +13,35 @@ import { TiendaService } from '../../core/tienda.service';
   host: { style: 'display: grid; gap: 1.5rem' },
   template: `
     <h1>Descuentos de temporada</h1>
-    <form class="lienzo" [formGroup]="f" (ngSubmit)="crear()">
+    <form class="card card-body lienzo" [formGroup]="f" (ngSubmit)="crear()">
       <div class="rejilla-form">
-        <label class="campo">Nombre <input formControlName="nombre" placeholder="Cosecha de mango" /></label>
+        <label class="campo">Nombre <input class="form-control" formControlName="nombre" placeholder="Cosecha de mango" /></label>
         <label class="campo">Producto
-          <select formControlName="productoId"><option value="">Todo el catálogo</option>@for (p of productos(); track p.id) { <option [value]="p.id">{{ p.nombre }}</option> }</select>
+          <select class="form-select" formControlName="productoId"><option value="">Todo el catálogo</option>@for (p of productos(); track p.id) { <option [value]="p.id">{{ p.nombre }}</option> }</select>
         </label>
-        <label class="campo">Descuento (%) <input type="number" min="1" max="70" formControlName="porcentaje" /></label>
-        <label class="campo">Desde <input type="date" formControlName="inicio" /></label>
-        <label class="campo">Hasta <input type="date" formControlName="fin" /></label>
+        <label class="campo">Descuento (%) <input class="form-control" type="number" min="1" max="70" formControlName="porcentaje" /></label>
+        <label class="campo">Desde <input class="form-control" type="date" formControlName="inicio" /></label>
+        <label class="campo">Hasta <input class="form-control" type="date" formControlName="fin" /></label>
       </div>
-      @if (error()) { <p class="aviso aviso-error" role="alert">{{ error() }}</p> }
-      <div><button class="boton boton-verde" type="submit">Crear campaña</button></div>
+      @if (error()) { <p class="alert alert-danger" role="alert">{{ error() }}</p> }
+      <div><button class="btn btn-primary" type="submit">Crear campaña</button></div>
     </form>
-    <div class="tabla-marco"><table>
+    <div class="tabla-marco"><table class="table table-hover align-middle mb-0">
       <thead><tr><th>Campaña</th><th>Producto</th><th class="num">Descuento</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead>
       <tbody>@for (o of ofertas(); track o.id) {
         <tr>
           <td>{{ o.nombre }}</td><td>{{ nombre(o.productoId) }}</td><td class="num">{{ o.porcentaje }}%</td><td>{{ o.inicio }} a {{ o.fin }}</td>
-          <td><span class="chip" [class.chip-rojo]="!o.activo">{{ o.activo ? 'Activa' : 'Terminada' }}</span></td>
-          <td>@if (o.activo) { <button class="boton boton-peligro boton-chico" (click)="terminar(o)">Terminar</button> }</td>
+          <td><span class="badge chip" [class.chip-rojo]="!o.activo">{{ o.activo ? 'Activa' : 'Terminada' }}</span></td>
+          <td>@if (o.activo) { <button class="btn btn-outline-danger btn-sm" (click)="terminar(o)">Terminar</button> }</td>
         </tr>
       } @empty { <tr><td colspan="6" class="sutil">Aún no hay campañas. Crea la primera con el formulario.</td></tr> }</tbody>
     </table></div>
   `,
 })
 export class Temporadas implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly avisos = inject(AvisosService);
+  private readonly ofertasApi = inject(OfertasService);
+  private readonly productosApi = inject(ProductosService);
   private readonly tienda = inject(TiendaService);
   protected readonly productos = signal<Producto[]>([]);
   protected readonly ofertas = signal<Oferta[]>([]);
@@ -47,7 +51,7 @@ export class Temporadas implements OnInit {
   });
 
   ngOnInit(): void {
-    this.api.productos().subscribe((p) => this.productos.set(p));
+    this.productosApi.productos().subscribe((p) => this.productos.set(p));
     this.recargar();
   }
 
@@ -62,18 +66,18 @@ export class Temporadas implements OnInit {
     }
     const v = this.f.getRawValue();
     this.error.set(null);
-    this.api.crearOferta({ ...v, productoId: v.productoId || null }).subscribe({
-      next: () => { this.f.reset(); this.recargar(); },
+    this.ofertasApi.crearOferta({ ...v, productoId: v.productoId || null }).subscribe({
+      next: () => { this.f.reset(); this.recargar(); this.avisos.exito('Campaña creada.'); },
       error: (e) => this.error.set(mensajeDeError(e)),
     });
   }
 
   protected terminar(o: Oferta): void {
-    this.api.terminarOferta(o.id).subscribe({ next: () => this.recargar(), error: (e) => this.error.set(mensajeDeError(e)) });
+    this.ofertasApi.terminarOferta(o.id).subscribe({ next: () => { this.recargar(); this.avisos.info('Campaña terminada.'); }, error: (e) => this.error.set(mensajeDeError(e)) });
   }
 
   private recargar(): void {
-    this.api.ofertas().subscribe((o) => this.ofertas.set(o));
+    this.ofertasApi.ofertas().subscribe((o) => this.ofertas.set(o));
     this.tienda.cargar();
   }
 }

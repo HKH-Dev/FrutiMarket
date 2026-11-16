@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, computed, inject, input, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../../core/api.service';
+import { ChatService } from '../../core/servicios/chat.service';
 import { AuthService } from '../../core/auth.service';
 import { ChatVivoService } from '../../core/chat-vivo.service';
 import { mensajeDeError } from '../../core/errores';
@@ -11,10 +11,10 @@ import { Conversacion, Mensaje } from '../../core/modelos';
 @Component({
   selector: 'app-mensajes',
   imports: [DatePipe, FormsModule],
-  host: { '[class.ancho]': 'esTienda()', '[class.tienda-contenido]': 'esTienda()', style: 'display: grid; gap: 1rem' },
+  host: { '[class.container]': 'esTienda()', '[class.tienda-contenido]': 'esTienda()', style: 'display: grid; gap: 1rem' },
   template: `
     <h1>Mensajes</h1>
-    @if (error()) { <p class="aviso aviso-error" role="alert">{{ error() }}</p> }
+    @if (error()) { <p class="alert alert-danger" role="alert">{{ error() }}</p> }
     @if (conversaciones().length) {
       <div class="chat">
         <div class="chat-lista">
@@ -40,8 +40,8 @@ import { Conversacion, Mensaje } from '../../core/modelos';
             </div>
             <form class="chat-form" (ngSubmit)="enviar()">
               <label class="oculto-a11y" for="texto">Mensaje</label>
-              <input id="texto" name="texto" [(ngModel)]="texto" maxlength="1000" autocomplete="off" placeholder="Escribe un mensaje" />
-              <button class="boton boton-verde" type="submit" [disabled]="!texto().trim() || !chat.conectado()">Enviar</button>
+              <input class="form-control" id="texto" name="texto" [(ngModel)]="texto" maxlength="1000" autocomplete="off" placeholder="Escribe un mensaje" />
+              <button class="btn btn-primary" type="submit" [disabled]="!texto().trim() || !chat.conectado()">Enviar</button>
             </form>
           </div>
         } @else {
@@ -57,7 +57,7 @@ import { Conversacion, Mensaje } from '../../core/modelos';
   `,
 })
 export class Mensajes implements OnInit, OnDestroy {
-  private readonly api = inject(ApiService);
+  private readonly chatApi = inject(ChatService);
   protected readonly auth = inject(AuthService);
   protected readonly chat = inject(ChatVivoService);
   private readonly hilo = viewChild<ElementRef<HTMLElement>>('hilo');
@@ -75,7 +75,7 @@ export class Mensajes implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.chat.conectar((m) => this.recibir(m));
-    this.api.conversaciones().subscribe({
+    this.chatApi.conversaciones().subscribe({
       next: (lista) => {
         this.conversaciones.set(lista);
         this.cargando.set(false);
@@ -99,7 +99,7 @@ export class Mensajes implements OnInit, OnDestroy {
   protected abrir(c: Conversacion): void {
     this.activa.set(c);
     this.chat.abrir(c.id);
-    this.api.mensajes(c.id).subscribe({
+    this.chatApi.mensajes(c.id).subscribe({
       next: (m) => { this.mensajes.set(m); this.bajar(); },
       error: (e) => this.error.set(mensajeDeError(e)),
     });

@@ -1,6 +1,6 @@
 import { CurrencyPipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { ApiService } from '../../core/api.service';
+import { ReportesService } from '../../core/servicios/reportes.service';
 import { ProductoVendido, ResumenPagos } from '../../core/modelos';
 
 @Component({
@@ -20,7 +20,7 @@ import { ProductoVendido, ResumenPagos } from '../../core/modelos';
     <section class="pila">
       <h2>Productos más vendidos</h2>
       @if (ranking().length) {
-        <div class="tabla-marco"><table>
+        <div class="tabla-marco"><table class="table table-hover align-middle mb-0">
           <thead><tr><th>#</th><th>Producto</th><th style="width: 40%">Volumen</th><th class="num">Vendido</th><th class="num">Compras</th></tr></thead>
           <tbody>@for (p of ranking(); track p.productoId) {
             <tr><td>{{ p.posicion }}</td><td>{{ p.nombre }}</td><td><div class="barra-ranking" [style.width.%]="(p.cantidadVendida / maximo()) * 100"></div></td><td class="num">{{ p.cantidadVendida }} {{ p.unidad }}</td><td class="num">{{ p.numeroCompras }}</td></tr>
@@ -33,13 +33,13 @@ import { ProductoVendido, ResumenPagos } from '../../core/modelos';
   `,
 })
 export class ResumenConsola implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly reportesApi = inject(ReportesService);
   protected readonly resumen = signal<ResumenPagos | null>(null);
   protected readonly ranking = signal<ProductoVendido[]>([]);
   protected readonly maximo = computed(() => Math.max(1, ...this.ranking().map((p) => p.cantidadVendida)));
 
   ngOnInit(): void {
-    this.api.resumen().subscribe((r) => this.resumen.set(r));
-    this.api.masVendidos().subscribe((r) => this.ranking.set(r));
+    this.reportesApi.resumen().subscribe((r) => this.resumen.set(r));
+    this.reportesApi.masVendidos().subscribe((r) => this.ranking.set(r));
   }
 }

@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Client, StompSubscription } from '@stomp/stompjs';
+import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 import { Mensaje } from './modelos';
 
@@ -24,7 +25,7 @@ export class ChatVivoService {
     }
     const protocolo = location.protocol === 'https:' ? 'wss' : 'ws';
     this.cliente = new Client({
-      brokerURL: `${protocolo}://${location.host}/ws`,
+      brokerURL: `${protocolo}://${location.host}${environment.wsRuta}`,
       reconnectDelay: 3000,
       beforeConnect: async (cliente) => {
         cliente.connectHeaders = { Authorization: `Bearer ${this.auth.token() ?? ''}` };

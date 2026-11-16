@@ -1,7 +1,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { ApiService } from '../../core/api.service';
+import { LotesService } from '../../core/servicios/lotes.service';
+import { ProductosService } from '../../core/servicios/productos.service';
+import { AvisosService } from '../../core/avisos.service';
 import { mensajeDeError } from '../../core/errores';
 import { Producto } from '../../core/modelos';
 
@@ -21,31 +23,33 @@ function nuevoId(): string {
   template: `
     <a routerLink="/finca/lotes">Volver a mis lotes</a>
     <h1>Registrar lote</h1>
-    <form class="lienzo" [formGroup]="f" (ngSubmit)="guardar()">
+    <form class="card card-body lienzo" [formGroup]="f" (ngSubmit)="guardar()" novalidate>
       <div class="rejilla-form">
         <label class="campo">Producto
-          <select formControlName="productoId">@for (p of productos(); track p.id) { <option [value]="p.id">{{ p.nombre }}</option> }</select>
+          <select class="form-select" formControlName="productoId">@for (p of productos(); track p.id) { <option [value]="p.id">{{ p.nombre }}</option> }</select>
         </label>
-        <label class="campo">Código del lote <input formControlName="codigo" placeholder="MANGO-2026-01" /></label>
-        <label class="campo">Fecha de cosecha <input type="date" formControlName="fechaCosecha" [max]="maximo" /></label>
-        <label class="campo">Cantidad <input type="number" min="1" formControlName="cantidad" /></label>
-        <label class="campo">Precio por unidad <input type="number" min="1" formControlName="precioPorUnidad" /></label>
+        <label class="campo">Código del lote <input class="form-control" formControlName="codigo" placeholder="MANGO-2026-01" [class.is-invalid]="mal('codigo')" /><span class="invalid-feedback">Escribe un código para reconocer el lote.</span></label>
+        <label class="campo">Fecha de cosecha <input class="form-control" type="date" formControlName="fechaCosecha" [max]="maximo" [class.is-invalid]="mal('fechaCosecha')" /><span class="invalid-feedback">Elige la fecha de cosecha.</span></label>
+        <label class="campo">Cantidad <input class="form-control" type="number" min="1" formControlName="cantidad" [class.is-invalid]="mal('cantidad')" /><span class="invalid-feedback">La cantidad debe ser mayor que cero.</span></label>
+        <label class="campo">Precio por unidad <input class="form-control" type="number" min="1" formControlName="precioPorUnidad" [class.is-invalid]="mal('precioPorUnidad')" /><span class="invalid-feedback">El precio debe ser mayor que cero.</span></label>
         <label class="campo">Técnica
-          <select formControlName="tecnicaProduccion"><option value="TRADICIONAL">Tradicional</option><option value="AGROECOLOGICA">Agroecológica</option><option value="ORGANICA_CERTIFICADA">Orgánica certificada</option></select>
+          <select class="form-select" formControlName="tecnicaProduccion"><option value="TRADICIONAL">Tradicional</option><option value="AGROECOLOGICA">Agroecológica</option><option value="ORGANICA_CERTIFICADA">Orgánica certificada</option></select>
         </label>
         <label class="campo">Categoría
-          <select formControlName="categoriaCalidad"><option value="EXTRA">Extra</option><option value="PRIMERA">Primera</option><option value="SEGUNDA">Segunda</option><option value="INDUSTRIAL">Industrial</option></select>
+          <select class="form-select" formControlName="categoriaCalidad"><option value="EXTRA">Extra</option><option value="PRIMERA">Primera</option><option value="SEGUNDA">Segunda</option><option value="INDUSTRIAL">Industrial</option></select>
         </label>
-        <label class="campo">Defectos (%) <input type="number" min="0" max="100" formControlName="porcentajeDefectos" /></label>
+        <label class="campo">Defectos (%) <input class="form-control" type="number" min="0" max="100" formControlName="porcentajeDefectos" [class.is-invalid]="mal('porcentajeDefectos')" /><span class="invalid-feedback">Debe estar entre 0 y 100.</span></label>
       </div>
       <label class="casilla"><input type="checkbox" formControlName="certificadoOrganico" /> Tiene certificado orgánico</label>
-      @if (error()) { <p class="aviso aviso-error" role="alert">{{ error() }}</p> }
-      <div><button class="boton" type="submit" [disabled]="enviando()">Registrar lote</button></div>
+      @if (error()) { <p class="alert alert-danger" role="alert">{{ error() }}</p> }
+      <div><button class="btn btn-warning" type="submit" [disabled]="enviando()">Registrar lote</button></div>
     </form>
   `,
 })
 export class NuevoLoteFinca implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly avisos = inject(AvisosService);
+  private readonly lotesApi = inject(LotesService);
+  private readonly productosApi = inject(ProductosService);
   private readonly router = inject(Router);
   protected readonly maximo = hoy();
   protected readonly productos = signal<Producto[]>([]);
@@ -64,7 +68,7 @@ export class NuevoLoteFinca implements OnInit {
   });
 
   ngOnInit(): void {
-    this.api.productos().subscribe((p) => {
+    this.productosApi.productos().subscribe((p) => {
       this.productos.set(p);
       if (p.length) {
         this.f.controls.productoId.setValue(p[0].id);
@@ -72,18 +76,26 @@ export class NuevoLoteFinca implements OnInit {
     });
   }
 
+  protected mal(campo: keyof typeof this.f.controls): boolean {
+    const control = this.f.controls[campo];
+    return control.invalid && control.touched;
+  }
+
   protected guardar(): void {
     if (this.f.invalid) {
-      this.error.set('Revisa los campos: código, cantidad y precio son obligatorios.');
+      this.f.markAllAsTouched();
       return;
     }
     const v = this.f.getRawValue();
     const unidad = this.productos().find((p) => p.id === v.productoId)?.unidadVenta ?? 'KILOGRAMO';
     this.enviando.set(true);
     this.error.set(null);
-    this.api.registrarLote({ ...v, cantidad: String(v.cantidad), unidadMedida: unidad, fincaOrigenId: nuevoId() }).subscribe({
-      next: () => this.router.navigateByUrl('/finca/lotes'),
-      error: (e) => { this.error.set(mensajeDeError(e)); this.enviando.set(false); },
+    this.lotesApi.registrarLote({ ...v, cantidad: String(v.cantidad), unidadMedida: unidad, fincaOrigenId: nuevoId() }).subscribe({
+      next: () => {
+        this.avisos.exito('Lote registrado. Publícalo cuando esté listo.');
+        this.router.navigateByUrl('/finca/lotes');
+      },
+      error: (e) => { this.error.set(mensajeDeError(e)); this.avisos.error(mensajeDeError(e)); this.enviando.set(false); },
     });
   }
 }
